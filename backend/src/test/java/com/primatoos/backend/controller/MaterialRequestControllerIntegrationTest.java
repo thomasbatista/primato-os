@@ -22,12 +22,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -250,5 +253,53 @@ class MaterialRequestControllerIntegrationTest {
         mockMvc.perform(post("/api/v1/material-requests/1/duplicate")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldReturnPdf_whenAuthenticatedAsManager() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor PDF").email("gestor.pdf.mr@primatoos.test").password("unused").role(UserRole.MANAGER)
+                .build());
+        Project project = projectRepository.save(Project.builder()
+                .name("Obra PDF MR").client("Cliente PDF MR").responsibleUser(manager).status(ProjectStatus.PLANNING)
+                .build());
+
+        MaterialRequestItem item = MaterialRequestItem.builder()
+                .name("Cimento").quantity(BigDecimal.TEN).unit(MaterialRequestUnit.BAG)
+                .quantityDelivered(BigDecimal.ZERO).build();
+
+        MaterialRequest materialRequest = MaterialRequest.builder()
+                .requestNumber(materialRequestRepository.nextRequestNumber())
+                .project(project)
+                .requestDate(LocalDate.of(2026, 8, 1))
+                .requester(manager)
+                .priority(MaterialRequestPriority.HIGH)
+                .status(MaterialRequestStatus.DRAFT)
+                .build();
+        item.setMaterialRequest(materialRequest);
+        materialRequest.getItems().add(item);
+        materialRequest = materialRequestRepository.save(materialRequest);
+
+        String token = jwtService.generateToken(manager);
+
+        byte[] pdf = mockMvc.perform(get("/api/v1/material-requests/" + materialRequest.getId() + "/pdf")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andReturn().getResponse().getContentAsByteArray();
+
+        assertThat(pdf).isNotEmpty();
+        assertThat(new String(pdf, 0, 4, StandardCharsets.US_ASCII)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void shouldReturnForbidden_whenWorkerRequestsPdf() throws Exception {
+        User worker = seedWorkerUser("worker.pdf@primatoos.test");
+        String token = jwtService.generateToken(worker);
+
+        mockMvc.perform(get("/api/v1/material-requests/1/pdf")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
     }
 }

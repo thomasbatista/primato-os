@@ -20,11 +20,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -152,5 +155,65 @@ class WorkOrderControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/work-orders/mine")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldReturnPdf_whenAuthenticatedAsManager() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor PDF").email("gestor.pdf.wo@primatoos.test").password("unused").role(UserRole.MANAGER)
+                .build());
+        Project project = projectRepository.save(Project.builder()
+                .name("Obra PDF").client("Cliente PDF").responsibleUser(manager).status(ProjectStatus.PLANNING)
+                .build());
+        WorkOrder workOrder = workOrderRepository.save(WorkOrder.builder()
+                .orderNumber(workOrderRepository.nextOrderNumber())
+                .project(project)
+                .date(LocalDate.of(2026, 8, 1))
+                .responsibleUser(manager)
+                .stage("Fundação")
+                .description("Concretar fundação")
+                .status(WorkOrderStatus.RELEASED)
+                .build());
+
+        String token = jwtService.generateToken(manager);
+
+        byte[] pdf = mockMvc.perform(get("/api/v1/work-orders/" + workOrder.getId() + "/pdf")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andReturn().getResponse().getContentAsByteArray();
+
+        assertThat(pdf).isNotEmpty();
+        assertThat(new String(pdf, 0, 4, StandardCharsets.US_ASCII)).isEqualTo("%PDF");
+    }
+
+    @Test
+    void shouldReturnForbidden_whenWorkerRequestsPdf() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor PDF Forbidden").email("gestor.pdf.forbidden.wo@primatoos.test").password("unused")
+                .role(UserRole.MANAGER).build());
+        Project project = projectRepository.save(Project.builder()
+                .name("Obra PDF Forbidden").client("Cliente PDF Forbidden").responsibleUser(manager)
+                .status(ProjectStatus.PLANNING).build());
+        WorkOrder workOrder = workOrderRepository.save(WorkOrder.builder()
+                .orderNumber(workOrderRepository.nextOrderNumber())
+                .project(project)
+                .date(LocalDate.of(2026, 8, 1))
+                .responsibleUser(manager)
+                .stage("Fundação")
+                .description("Concretar fundação")
+                .status(WorkOrderStatus.RELEASED)
+                .build());
+
+        User worker = userRepository.save(User.builder()
+                .name("Colaborador PDF").email("worker.pdf.wo@primatoos.test").password("unused")
+                .role(UserRole.WORKER).build());
+
+        String token = jwtService.generateToken(worker);
+
+        mockMvc.perform(get("/api/v1/work-orders/" + workOrder.getId() + "/pdf")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
     }
 }
