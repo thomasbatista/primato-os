@@ -5,7 +5,6 @@ import com.primatoos.backend.dto.workorder.WorkOrderResponse;
 import com.primatoos.backend.dto.worker.WorkerSummaryResponse;
 import com.primatoos.backend.model.Project;
 import com.primatoos.backend.model.WorkOrder;
-import com.primatoos.backend.model.Worker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +15,7 @@ import java.util.Comparator;
 public class WorkOrderMapper {
 
     private final UserMapper userMapper;
+    private final WorkerMapper workerMapper;
 
     public WorkOrderResponse toResponse(WorkOrder workOrder) {
         return new WorkOrderResponse(
@@ -37,7 +37,7 @@ public class WorkOrderMapper {
                 workOrder.getNotes(),
                 workOrder.getStatus(),
                 workOrder.getAssignedWorkers().stream()
-                        .map(this::toWorkerSummary)
+                        .map(workerMapper::toSummary)
                         .sorted(Comparator.comparing(WorkerSummaryResponse::name))
                         .toList(),
                 workOrder.getCreatedAt()
@@ -46,9 +46,5 @@ public class WorkOrderMapper {
 
     private ProjectSummaryResponse toProjectSummary(Project project) {
         return new ProjectSummaryResponse(project.getId(), project.getName(), project.getClient());
-    }
-
-    private WorkerSummaryResponse toWorkerSummary(Worker worker) {
-        return new WorkerSummaryResponse(worker.getId(), worker.getName(), worker.getFunction());
     }
 }

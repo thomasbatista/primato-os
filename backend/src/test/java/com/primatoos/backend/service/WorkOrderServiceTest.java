@@ -7,6 +7,7 @@ import com.primatoos.backend.exception.BusinessRuleException;
 import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.UserMapper;
 import com.primatoos.backend.mapper.WorkOrderMapper;
+import com.primatoos.backend.mapper.WorkerMapper;
 import com.primatoos.backend.model.Project;
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
@@ -58,8 +59,9 @@ class WorkOrderServiceTest {
 
     @BeforeEach
     void setUp() {
+        UserMapper userMapper = new UserMapper();
         workOrderService = new WorkOrderService(workOrderRepository, projectRepository, userRepository,
-                workerRepository, new WorkOrderMapper(new UserMapper()));
+                workerRepository, new WorkOrderMapper(userMapper, new WorkerMapper(userMapper)));
     }
 
     private Project aProject() {
