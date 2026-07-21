@@ -2,6 +2,7 @@ package com.primatoos.backend.mapper;
 
 import com.primatoos.backend.dto.materialrequest.MaterialRequestItemResponse;
 import com.primatoos.backend.dto.materialrequest.MaterialRequestResponse;
+import com.primatoos.backend.dto.materialrequest.MaterialRequestSummaryResponse;
 import com.primatoos.backend.model.MaterialRequest;
 import com.primatoos.backend.model.MaterialRequestItem;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,16 @@ public class MaterialRequestMapper {
                 materialRequest.getStatus(),
                 materialRequest.getItems().stream().map(this::toItemResponse).toList(),
                 materialRequest.getCreatedAt()
+        );
+    }
+
+    public MaterialRequestSummaryResponse toSummary(MaterialRequest materialRequest) {
+        return new MaterialRequestSummaryResponse(
+                materialRequest.getId(),
+                materialRequest.getRequestNumber(),
+                projectMapper.toSummary(materialRequest.getProject()),
+                materialRequest.getPriority(),
+                materialRequest.getStatus()
         );
     }
 

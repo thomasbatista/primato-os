@@ -3,6 +3,7 @@ package com.primatoos.backend.mapper;
 import com.primatoos.backend.dto.dailyreport.DailyReportItemResponse;
 import com.primatoos.backend.dto.dailyreport.DailyReportPhotoResponse;
 import com.primatoos.backend.dto.dailyreport.DailyReportResponse;
+import com.primatoos.backend.dto.dailyreport.DailyReportSummaryResponse;
 import com.primatoos.backend.dto.worker.WorkerSummaryResponse;
 import com.primatoos.backend.model.DailyReport;
 import com.primatoos.backend.model.DailyReportItem;
@@ -43,6 +44,16 @@ public class DailyReportMapper {
                 dailyReport.getItems().stream().map(this::toItemResponse).toList(),
                 dailyReport.getPhotos().stream().map(this::toPhotoResponse).toList(),
                 dailyReport.getCreatedAt()
+        );
+    }
+
+    public DailyReportSummaryResponse toSummary(DailyReport dailyReport) {
+        return new DailyReportSummaryResponse(
+                dailyReport.getId(),
+                workOrderMapper.toSummary(dailyReport.getWorkOrder()),
+                dailyReport.getDate(),
+                workerMapper.toSummary(dailyReport.getFilledByWorker()),
+                dailyReport.getStatus()
         );
     }
 

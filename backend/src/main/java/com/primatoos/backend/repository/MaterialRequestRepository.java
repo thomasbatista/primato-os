@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+
 public interface MaterialRequestRepository extends JpaRepository<MaterialRequest, Long> {
 
     @Query(value = "SELECT nextval('material_request_number_seq')", nativeQuery = true)
@@ -19,4 +21,6 @@ public interface MaterialRequestRepository extends JpaRepository<MaterialRequest
             + "AND (:status IS NULL OR m.status = :status)")
     Page<MaterialRequest> search(@Param("projectId") Long projectId, @Param("workOrderId") Long workOrderId,
                                   @Param("status") MaterialRequestStatus status, Pageable pageable);
+
+    Page<MaterialRequest> findByStatusIn(Collection<MaterialRequestStatus> statuses, Pageable pageable);
 }

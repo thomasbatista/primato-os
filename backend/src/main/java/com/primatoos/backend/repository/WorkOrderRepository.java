@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.util.Collection;
+
 public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query(value = "SELECT nextval('work_order_number_seq')", nativeQuery = true)
@@ -20,4 +23,6 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
                             Pageable pageable);
 
     Page<WorkOrder> findByAssignedWorkers_Id(Long workerId, Pageable pageable);
+
+    Page<WorkOrder> findByDateAndStatusIn(LocalDate date, Collection<WorkOrderStatus> statuses, Pageable pageable);
 }
