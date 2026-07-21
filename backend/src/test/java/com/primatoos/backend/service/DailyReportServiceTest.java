@@ -8,7 +8,9 @@ import com.primatoos.backend.exception.BusinessRuleException;
 import com.primatoos.backend.exception.ForbiddenOperationException;
 import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.DailyReportMapper;
+import com.primatoos.backend.mapper.ProjectMapper;
 import com.primatoos.backend.mapper.UserMapper;
+import com.primatoos.backend.mapper.WorkOrderMapper;
 import com.primatoos.backend.mapper.WorkerMapper;
 import com.primatoos.backend.model.DailyReport;
 import com.primatoos.backend.model.DailyReportItemStatus;
@@ -63,8 +65,11 @@ class DailyReportServiceTest {
 
     @BeforeEach
     void setUp() {
+        UserMapper userMapper = new UserMapper();
+        WorkerMapper workerMapper = new WorkerMapper(userMapper);
+        WorkOrderMapper workOrderMapper = new WorkOrderMapper(userMapper, workerMapper, new ProjectMapper(userMapper));
         dailyReportService = new DailyReportService(dailyReportRepository, workOrderRepository, userRepository,
-                workerRepository, new DailyReportMapper(new WorkerMapper(new UserMapper())));
+                workerRepository, new DailyReportMapper(workerMapper, workOrderMapper));
     }
 
     private User aWorkerUser(Long id, String email) {

@@ -1,9 +1,8 @@
 package com.primatoos.backend.mapper;
 
-import com.primatoos.backend.dto.project.ProjectSummaryResponse;
 import com.primatoos.backend.dto.workorder.WorkOrderResponse;
+import com.primatoos.backend.dto.workorder.WorkOrderSummaryResponse;
 import com.primatoos.backend.dto.worker.WorkerSummaryResponse;
-import com.primatoos.backend.model.Project;
 import com.primatoos.backend.model.WorkOrder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,12 +15,13 @@ public class WorkOrderMapper {
 
     private final UserMapper userMapper;
     private final WorkerMapper workerMapper;
+    private final ProjectMapper projectMapper;
 
     public WorkOrderResponse toResponse(WorkOrder workOrder) {
         return new WorkOrderResponse(
                 workOrder.getId(),
                 workOrder.getOrderNumber(),
-                toProjectSummary(workOrder.getProject()),
+                projectMapper.toSummary(workOrder.getProject()),
                 workOrder.getDate(),
                 userMapper.toSummary(workOrder.getResponsibleUser()),
                 workOrder.getStage(),
@@ -44,7 +44,7 @@ public class WorkOrderMapper {
         );
     }
 
-    private ProjectSummaryResponse toProjectSummary(Project project) {
-        return new ProjectSummaryResponse(project.getId(), project.getName(), project.getClient());
+    public WorkOrderSummaryResponse toSummary(WorkOrder workOrder) {
+        return new WorkOrderSummaryResponse(workOrder.getId(), workOrder.getOrderNumber(), workOrder.getStage());
     }
 }

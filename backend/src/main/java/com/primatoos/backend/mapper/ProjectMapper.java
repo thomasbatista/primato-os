@@ -1,6 +1,7 @@
 package com.primatoos.backend.mapper;
 
 import com.primatoos.backend.dto.project.ProjectResponse;
+import com.primatoos.backend.dto.project.ProjectSummaryResponse;
 import com.primatoos.backend.model.Project;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -25,5 +26,9 @@ public class ProjectMapper {
                 project.getNotes(),
                 project.getCreatedAt()
         );
+    }
+
+    public ProjectSummaryResponse toSummary(Project project) {
+        return new ProjectSummaryResponse(project.getId(), project.getName(), project.getClient());
     }
 }
