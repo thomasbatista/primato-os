@@ -1,0 +1,10 @@
+node_modules/
+target/
+.env
+*.log
+.DS_Store
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+backend/CLAUDE.md
+frontend/CLAUDE.md
