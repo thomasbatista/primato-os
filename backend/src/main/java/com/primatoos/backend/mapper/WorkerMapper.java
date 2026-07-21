@@ -1,17 +1,15 @@
 package com.primatoos.backend.mapper;
 
-import com.primatoos.backend.dto.WorkerResponse;
+import com.primatoos.backend.dto.worker.WorkerResponse;
 import com.primatoos.backend.model.Worker;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class WorkerMapper {
 
     private final UserMapper userMapper;
-
-    public WorkerMapper(UserMapper userMapper) {
-        this.userMapper = userMapper;
-    }
 
     public WorkerResponse toResponse(Worker worker) {
         return new WorkerResponse(

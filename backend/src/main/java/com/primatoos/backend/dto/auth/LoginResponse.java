@@ -1,4 +1,4 @@
-package com.primatoos.backend.dto;
+package com.primatoos.backend.dto.auth;
 
 public record LoginResponse(String token) {
 }

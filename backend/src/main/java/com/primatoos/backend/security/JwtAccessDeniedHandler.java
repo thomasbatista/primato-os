@@ -1,7 +1,7 @@
 package com.primatoos.backend.security;
 
 import tools.jackson.databind.ObjectMapper;
-import com.primatoos.backend.exception.ErrorResponse;
+import com.primatoos.backend.dto.common.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;

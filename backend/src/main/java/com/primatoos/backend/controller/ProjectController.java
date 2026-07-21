@@ -1,10 +1,11 @@
 package com.primatoos.backend.controller;
 
-import com.primatoos.backend.dto.ProjectCreateRequest;
-import com.primatoos.backend.dto.ProjectResponse;
-import com.primatoos.backend.dto.ProjectUpdateRequest;
+import com.primatoos.backend.dto.project.ProjectCreateRequest;
+import com.primatoos.backend.dto.project.ProjectResponse;
+import com.primatoos.backend.dto.project.ProjectUpdateRequest;
 import com.primatoos.backend.service.ProjectService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -23,13 +24,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/projects")
 @PreAuthorize("hasRole('MANAGER')")
+@RequiredArgsConstructor
 public class ProjectController {
 
     private final ProjectService projectService;
-
-    public ProjectController(ProjectService projectService) {
-        this.projectService = projectService;
-    }
 
     @PostMapping
     public ResponseEntity<ProjectResponse> create(@Valid @RequestBody ProjectCreateRequest request) {

@@ -1,4 +1,4 @@
-package com.primatoos.backend.dto;
+package com.primatoos.backend.dto.worker;
 
 import jakarta.validation.constraints.NotBlank;
 

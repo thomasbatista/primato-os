@@ -1,17 +1,15 @@
 package com.primatoos.backend.mapper;
 
-import com.primatoos.backend.dto.ProjectResponse;
+import com.primatoos.backend.dto.project.ProjectResponse;
 import com.primatoos.backend.model.Project;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class ProjectMapper {
 
     private final UserMapper userMapper;
-
-    public ProjectMapper(UserMapper userMapper) {
-        this.userMapper = userMapper;
-    }
 
     public ProjectResponse toResponse(Project project) {
         return new ProjectResponse(

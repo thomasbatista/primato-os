@@ -1,8 +1,8 @@
 package com.primatoos.backend.service;
 
-import com.primatoos.backend.dto.ProjectCreateRequest;
-import com.primatoos.backend.dto.ProjectResponse;
-import com.primatoos.backend.dto.ProjectUpdateRequest;
+import com.primatoos.backend.dto.project.ProjectCreateRequest;
+import com.primatoos.backend.dto.project.ProjectResponse;
+import com.primatoos.backend.dto.project.ProjectUpdateRequest;
 import com.primatoos.backend.exception.BusinessRuleException;
 import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.ProjectMapper;

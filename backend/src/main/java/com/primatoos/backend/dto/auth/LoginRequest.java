@@ -1,4 +1,4 @@
-package com.primatoos.backend.dto;
+package com.primatoos.backend.dto.auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

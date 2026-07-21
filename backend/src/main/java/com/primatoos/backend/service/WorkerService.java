@@ -1,8 +1,8 @@
 package com.primatoos.backend.service;
 
-import com.primatoos.backend.dto.WorkerCreateRequest;
-import com.primatoos.backend.dto.WorkerResponse;
-import com.primatoos.backend.dto.WorkerUpdateRequest;
+import com.primatoos.backend.dto.worker.WorkerCreateRequest;
+import com.primatoos.backend.dto.worker.WorkerResponse;
+import com.primatoos.backend.dto.worker.WorkerUpdateRequest;
 import com.primatoos.backend.exception.BusinessRuleException;
 import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.WorkerMapper;
@@ -11,23 +11,18 @@ import com.primatoos.backend.model.UserRole;
 import com.primatoos.backend.model.Worker;
 import com.primatoos.backend.repository.UserRepository;
 import com.primatoos.backend.repository.WorkerRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class WorkerService {
 
     private final WorkerRepository workerRepository;
     private final UserRepository userRepository;
     private final WorkerMapper workerMapper;
-
-    public WorkerService(WorkerRepository workerRepository, UserRepository userRepository,
-                          WorkerMapper workerMapper) {
-        this.workerRepository = workerRepository;
-        this.userRepository = userRepository;
-        this.workerMapper = workerMapper;
-    }
 
     public WorkerResponse create(WorkerCreateRequest request) {
         User user = resolveWorkerUserOrNull(request.userId(), null);

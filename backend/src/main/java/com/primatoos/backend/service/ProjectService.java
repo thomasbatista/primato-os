@@ -1,8 +1,8 @@
 package com.primatoos.backend.service;
 
-import com.primatoos.backend.dto.ProjectCreateRequest;
-import com.primatoos.backend.dto.ProjectResponse;
-import com.primatoos.backend.dto.ProjectUpdateRequest;
+import com.primatoos.backend.dto.project.ProjectCreateRequest;
+import com.primatoos.backend.dto.project.ProjectResponse;
+import com.primatoos.backend.dto.project.ProjectUpdateRequest;
 import com.primatoos.backend.exception.BusinessRuleException;
 import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.ProjectMapper;
@@ -12,23 +12,18 @@ import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
 import com.primatoos.backend.repository.ProjectRepository;
 import com.primatoos.backend.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectMapper projectMapper;
-
-    public ProjectService(ProjectRepository projectRepository, UserRepository userRepository,
-                           ProjectMapper projectMapper) {
-        this.projectRepository = projectRepository;
-        this.userRepository = userRepository;
-        this.projectMapper = projectMapper;
-    }
 
     public ProjectResponse create(ProjectCreateRequest request) {
         User responsibleUser = findManagerOrThrow(request.responsibleUserId());

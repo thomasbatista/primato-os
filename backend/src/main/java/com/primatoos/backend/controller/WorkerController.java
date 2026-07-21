@@ -1,10 +1,11 @@
 package com.primatoos.backend.controller;
 
-import com.primatoos.backend.dto.WorkerCreateRequest;
-import com.primatoos.backend.dto.WorkerResponse;
-import com.primatoos.backend.dto.WorkerUpdateRequest;
+import com.primatoos.backend.dto.worker.WorkerCreateRequest;
+import com.primatoos.backend.dto.worker.WorkerResponse;
+import com.primatoos.backend.dto.worker.WorkerUpdateRequest;
 import com.primatoos.backend.service.WorkerService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -23,13 +24,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/workers")
 @PreAuthorize("hasRole('MANAGER')")
+@RequiredArgsConstructor
 public class WorkerController {
 
     private final WorkerService workerService;
-
-    public WorkerController(WorkerService workerService) {
-        this.workerService = workerService;
-    }
 
     @PostMapping
     public ResponseEntity<WorkerResponse> create(@Valid @RequestBody WorkerCreateRequest request) {

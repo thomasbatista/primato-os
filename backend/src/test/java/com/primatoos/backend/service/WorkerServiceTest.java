@@ -1,8 +1,8 @@
 package com.primatoos.backend.service;
 
-import com.primatoos.backend.dto.WorkerCreateRequest;
-import com.primatoos.backend.dto.WorkerResponse;
-import com.primatoos.backend.dto.WorkerUpdateRequest;
+import com.primatoos.backend.dto.worker.WorkerCreateRequest;
+import com.primatoos.backend.dto.worker.WorkerResponse;
+import com.primatoos.backend.dto.worker.WorkerUpdateRequest;
 import com.primatoos.backend.exception.BusinessRuleException;
 import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.UserMapper;

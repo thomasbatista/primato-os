@@ -1,4 +1,4 @@
-package com.primatoos.backend.exception;
+package com.primatoos.backend.dto.common;
 
 import java.time.Instant;
 

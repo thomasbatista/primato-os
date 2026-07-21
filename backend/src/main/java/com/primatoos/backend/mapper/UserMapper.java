@@ -1,6 +1,6 @@
 package com.primatoos.backend.mapper;
 
-import com.primatoos.backend.dto.UserSummaryResponse;
+import com.primatoos.backend.dto.common.UserSummaryResponse;
 import com.primatoos.backend.model.User;
 import org.springframework.stereotype.Component;
 

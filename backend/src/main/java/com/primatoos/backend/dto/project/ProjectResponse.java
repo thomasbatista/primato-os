@@ -1,5 +1,6 @@
-package com.primatoos.backend.dto;
+package com.primatoos.backend.dto.project;
 
+import com.primatoos.backend.dto.common.UserSummaryResponse;
 import com.primatoos.backend.model.ProjectStatus;
 
 import java.time.LocalDate;

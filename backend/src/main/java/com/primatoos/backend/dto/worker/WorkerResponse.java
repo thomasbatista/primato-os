@@ -1,4 +1,6 @@
-package com.primatoos.backend.dto;
+package com.primatoos.backend.dto.worker;
+
+import com.primatoos.backend.dto.common.UserSummaryResponse;
 
 import java.time.LocalDateTime;
 

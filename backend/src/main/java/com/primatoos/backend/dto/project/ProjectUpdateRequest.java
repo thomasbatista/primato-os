@@ -1,11 +1,12 @@
-package com.primatoos.backend.dto;
+package com.primatoos.backend.dto.project;
 
+import com.primatoos.backend.model.ProjectStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
-public record ProjectCreateRequest(
+public record ProjectUpdateRequest(
 
         @NotBlank(message = "Nome da obra é obrigatório")
         String name,
@@ -21,6 +22,9 @@ public record ProjectCreateRequest(
         LocalDate startDate,
         LocalDate expectedDeadline,
         String currentStage,
-        String notes
+        String notes,
+
+        @NotNull(message = "Status é obrigatório")
+        ProjectStatus status
 ) {
 }
