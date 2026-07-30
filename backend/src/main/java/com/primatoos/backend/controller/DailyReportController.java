@@ -1,6 +1,7 @@
 package com.primatoos.backend.controller;
 
 import com.primatoos.backend.dto.dailyreport.DailyReportCreateRequest;
+import com.primatoos.backend.dto.dailyreport.DailyReportPhotoResponse;
 import com.primatoos.backend.dto.dailyreport.DailyReportResponse;
 import com.primatoos.backend.dto.dailyreport.DailyReportUpdateRequest;
 import com.primatoos.backend.service.DailyReportService;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/daily-reports")
@@ -71,5 +74,21 @@ public class DailyReportController {
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<DailyReportResponse> reopen(@PathVariable Long id) {
         return ResponseEntity.ok(dailyReportService.reopen(id));
+    }
+
+    @PostMapping("/{id}/photos")
+    @PreAuthorize("hasRole('WORKER')")
+    public ResponseEntity<DailyReportPhotoResponse> uploadPhoto(Authentication authentication, @PathVariable Long id,
+                                                                  @RequestParam("file") MultipartFile file) {
+        DailyReportPhotoResponse response = dailyReportService.uploadPhoto(id, authentication.getName(), file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @DeleteMapping("/{id}/photos/{photoId}")
+    @PreAuthorize("hasRole('WORKER')")
+    public ResponseEntity<Void> deletePhoto(Authentication authentication, @PathVariable Long id,
+                                             @PathVariable Long photoId) {
+        dailyReportService.deletePhoto(id, photoId, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 }

@@ -2,21 +2,25 @@ package com.primatoos.backend.service;
 
 import com.primatoos.backend.dto.dailyreport.DailyReportCreateRequest;
 import com.primatoos.backend.dto.dailyreport.DailyReportItemRequest;
+import com.primatoos.backend.dto.dailyreport.DailyReportPhotoResponse;
 import com.primatoos.backend.dto.dailyreport.DailyReportResponse;
 import com.primatoos.backend.dto.dailyreport.DailyReportUpdateRequest;
 import com.primatoos.backend.exception.BusinessRuleException;
+import com.primatoos.backend.exception.FileStorageException;
 import com.primatoos.backend.exception.ForbiddenOperationException;
 import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.DailyReportMapper;
 import com.primatoos.backend.model.DailyReport;
 import com.primatoos.backend.model.DailyReportItem;
 import com.primatoos.backend.model.DailyReportItemStatus;
+import com.primatoos.backend.model.DailyReportPhoto;
 import com.primatoos.backend.model.DailyReportStatus;
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
 import com.primatoos.backend.model.WorkOrder;
 import com.primatoos.backend.model.WorkOrderStatus;
 import com.primatoos.backend.model.Worker;
+import com.primatoos.backend.repository.DailyReportPhotoRepository;
 import com.primatoos.backend.repository.DailyReportRepository;
 import com.primatoos.backend.repository.UserRepository;
 import com.primatoos.backend.repository.WorkOrderRepository;
@@ -25,11 +29,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,11 +47,22 @@ public class DailyReportService {
     private static final Set<WorkOrderStatus> REPORTABLE_WORK_ORDER_STATUSES =
             Set.of(WorkOrderStatus.RELEASED, WorkOrderStatus.IN_PROGRESS);
 
+    private static final long MAX_PHOTO_SIZE_BYTES = 10L * 1024 * 1024;
+
+    private static final Map<String, String> ALLOWED_PHOTO_EXTENSIONS = Map.of(
+            "jpg", "image/jpeg",
+            "jpeg", "image/jpeg",
+            "png", "image/png",
+            "webp", "image/webp"
+    );
+
     private final DailyReportRepository dailyReportRepository;
+    private final DailyReportPhotoRepository dailyReportPhotoRepository;
     private final WorkOrderRepository workOrderRepository;
     private final UserRepository userRepository;
     private final WorkerRepository workerRepository;
     private final DailyReportMapper dailyReportMapper;
+    private final StorageService storageService;
 
     public DailyReportResponse create(String email, DailyReportCreateRequest request) {
         WorkOrder workOrder = findWorkOrderOrThrow(request.workOrderId());
@@ -132,6 +151,75 @@ public class DailyReportService {
 
         dailyReport.setStatus(DailyReportStatus.DRAFT);
         return dailyReportMapper.toResponse(dailyReportRepository.save(dailyReport));
+    }
+
+    public DailyReportPhotoResponse uploadPhoto(Long dailyReportId, String email, MultipartFile file) {
+        DailyReport dailyReport = findDailyReportOrThrow(dailyReportId);
+        resolveAssignedWorkerOrThrow(email, dailyReport.getWorkOrder());
+        ensureDraft(dailyReport);
+
+        String extension = validatePhotoFile(file);
+        String key = "daily-reports/" + dailyReportId + "/" + UUID.randomUUID() + "." + extension;
+        String url = storageService.upload(key, readBytes(file), file.getContentType());
+
+        DailyReportPhoto photo = DailyReportPhoto.builder()
+                .dailyReport(dailyReport)
+                .url(url)
+                .build();
+
+        return dailyReportMapper.toPhotoResponse(dailyReportPhotoRepository.save(photo));
+    }
+
+    public void deletePhoto(Long dailyReportId, Long photoId, String email) {
+        DailyReport dailyReport = findDailyReportOrThrow(dailyReportId);
+        resolveAssignedWorkerOrThrow(email, dailyReport.getWorkOrder());
+        ensureDraft(dailyReport);
+
+        DailyReportPhoto photo = dailyReportPhotoRepository.findById(photoId)
+                .filter(candidate -> candidate.getDailyReport().getId().equals(dailyReportId))
+                .orElseThrow(() -> new ResourceNotFoundException("Foto não encontrada"));
+
+        storageService.delete(photo.getUrl());
+        dailyReportPhotoRepository.delete(photo);
+    }
+
+    private String validatePhotoFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessRuleException("Arquivo de foto é obrigatório");
+        }
+
+        if (file.getSize() > MAX_PHOTO_SIZE_BYTES) {
+            throw new BusinessRuleException("O arquivo excede o tamanho máximo permitido de 10MB");
+        }
+
+        String extension = extractExtension(file.getOriginalFilename());
+        String expectedContentType = ALLOWED_PHOTO_EXTENSIONS.get(extension);
+
+        if (expectedContentType == null) {
+            throw new BusinessRuleException("Tipo de arquivo não permitido. Envie uma imagem jpg, jpeg, png ou webp");
+        }
+
+        if (!expectedContentType.equalsIgnoreCase(file.getContentType())) {
+            throw new BusinessRuleException("O tipo do arquivo não corresponde à extensão informada");
+        }
+
+        return extension;
+    }
+
+    private String extractExtension(String filename) {
+        if (filename == null || !filename.contains(".")) {
+            return "";
+        }
+
+        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+    }
+
+    private byte[] readBytes(MultipartFile file) {
+        try {
+            return file.getBytes();
+        } catch (IOException ex) {
+            throw new FileStorageException("Erro ao ler o arquivo enviado", ex);
+        }
     }
 
     private void applyItems(DailyReport dailyReport, List<DailyReportItemRequest> itemRequests) {

@@ -68,7 +68,7 @@ public class DailyReportMapper {
         );
     }
 
-    private DailyReportPhotoResponse toPhotoResponse(DailyReportPhoto photo) {
+    public DailyReportPhotoResponse toPhotoResponse(DailyReportPhoto photo) {
         return new DailyReportPhotoResponse(photo.getId(), photo.getUrl(), photo.getCreatedAt());
     }
 }

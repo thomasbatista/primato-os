@@ -2,6 +2,7 @@ package com.primatoos.backend.service;
 
 import com.primatoos.backend.dto.dailyreport.DailyReportCreateRequest;
 import com.primatoos.backend.dto.dailyreport.DailyReportItemRequest;
+import com.primatoos.backend.dto.dailyreport.DailyReportPhotoResponse;
 import com.primatoos.backend.dto.dailyreport.DailyReportResponse;
 import com.primatoos.backend.dto.dailyreport.DailyReportUpdateRequest;
 import com.primatoos.backend.exception.BusinessRuleException;
@@ -14,12 +15,14 @@ import com.primatoos.backend.mapper.WorkOrderMapper;
 import com.primatoos.backend.mapper.WorkerMapper;
 import com.primatoos.backend.model.DailyReport;
 import com.primatoos.backend.model.DailyReportItemStatus;
+import com.primatoos.backend.model.DailyReportPhoto;
 import com.primatoos.backend.model.DailyReportStatus;
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
 import com.primatoos.backend.model.WorkOrder;
 import com.primatoos.backend.model.WorkOrderStatus;
 import com.primatoos.backend.model.Worker;
+import com.primatoos.backend.repository.DailyReportPhotoRepository;
 import com.primatoos.backend.repository.DailyReportRepository;
 import com.primatoos.backend.repository.UserRepository;
 import com.primatoos.backend.repository.WorkOrderRepository;
@@ -27,12 +30,14 @@ import com.primatoos.backend.repository.WorkerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -42,6 +47,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -53,6 +59,9 @@ class DailyReportServiceTest {
     private DailyReportRepository dailyReportRepository;
 
     @Mock
+    private DailyReportPhotoRepository dailyReportPhotoRepository;
+
+    @Mock
     private WorkOrderRepository workOrderRepository;
 
     @Mock
@@ -61,6 +70,9 @@ class DailyReportServiceTest {
     @Mock
     private WorkerRepository workerRepository;
 
+    @Mock
+    private StorageService storageService;
+
     private DailyReportService dailyReportService;
 
     @BeforeEach
@@ -68,8 +80,9 @@ class DailyReportServiceTest {
         UserMapper userMapper = new UserMapper();
         WorkerMapper workerMapper = new WorkerMapper(userMapper);
         WorkOrderMapper workOrderMapper = new WorkOrderMapper(userMapper, workerMapper, new ProjectMapper(userMapper));
-        dailyReportService = new DailyReportService(dailyReportRepository, workOrderRepository, userRepository,
-                workerRepository, new DailyReportMapper(workerMapper, workOrderMapper));
+        dailyReportService = new DailyReportService(dailyReportRepository, dailyReportPhotoRepository,
+                workOrderRepository, userRepository, workerRepository,
+                new DailyReportMapper(workerMapper, workOrderMapper), storageService);
     }
 
     private User aWorkerUser(Long id, String email) {
@@ -352,5 +365,187 @@ class DailyReportServiceTest {
         Page<DailyReportResponse> page = dailyReportService.findByWorkOrder(500L, "worker@primatoos.test", pageable);
 
         assertThat(page.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldUploadPhoto_whenWorkerIsAssignedAndFileIsValid() {
+        User user = aWorkerUser(10L, "worker@primatoos.test");
+        Worker worker = aWorker(1L, user);
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.IN_PROGRESS, Set.of(worker));
+        DailyReport dailyReport = DailyReport.builder()
+                .id(900L).workOrder(workOrder).date(LocalDate.of(2026, 8, 1)).filledByWorker(worker)
+                .status(DailyReportStatus.DRAFT).build();
+
+        MockMultipartFile file = new MockMultipartFile("file", "foto.jpg", "image/jpeg", "conteudo".getBytes());
+
+        given(dailyReportRepository.findById(900L)).willReturn(Optional.of(dailyReport));
+        given(userRepository.findByEmail("worker@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(10L)).willReturn(Optional.of(worker));
+        given(storageService.upload(any(), any(), eq("image/jpeg")))
+                .willReturn("https://cdn.primatoos.test/daily-reports/900/generated.jpg");
+        given(dailyReportPhotoRepository.save(any(DailyReportPhoto.class)))
+                .willAnswer(invocation -> {
+                    DailyReportPhoto photo = invocation.getArgument(0);
+                    photo.setId(1L);
+                    return photo;
+                });
+
+        DailyReportPhotoResponse response = dailyReportService.uploadPhoto(900L, "worker@primatoos.test", file);
+
+        assertThat(response.url()).isEqualTo("https://cdn.primatoos.test/daily-reports/900/generated.jpg");
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(storageService).upload(keyCaptor.capture(), any(), eq("image/jpeg"));
+        assertThat(keyCaptor.getValue()).matches("daily-reports/900/[0-9a-f-]{36}\\.jpg");
+    }
+
+    @Test
+    void shouldThrowForbiddenOperationException_whenUnassignedWorkerUploadsPhoto() {
+        User outsider = aWorkerUser(40L, "outsider@primatoos.test");
+        Worker outsiderWorker = aWorker(2L, outsider);
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.IN_PROGRESS, Set.of());
+        DailyReport dailyReport = DailyReport.builder()
+                .id(900L).workOrder(workOrder).date(LocalDate.of(2026, 8, 1))
+                .status(DailyReportStatus.DRAFT).build();
+
+        MockMultipartFile file = new MockMultipartFile("file", "foto.jpg", "image/jpeg", "conteudo".getBytes());
+
+        given(dailyReportRepository.findById(900L)).willReturn(Optional.of(dailyReport));
+        given(userRepository.findByEmail("outsider@primatoos.test")).willReturn(Optional.of(outsider));
+        given(workerRepository.findByUserId(40L)).willReturn(Optional.of(outsiderWorker));
+
+        assertThatThrownBy(() -> dailyReportService.uploadPhoto(900L, "outsider@primatoos.test", file))
+                .isInstanceOf(ForbiddenOperationException.class);
+
+        verify(storageService, never()).upload(any(), any(), any());
+    }
+
+    @Test
+    void shouldThrowBusinessRuleException_whenPhotoExceedsMaxSize() {
+        User user = aWorkerUser(10L, "worker@primatoos.test");
+        Worker worker = aWorker(1L, user);
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.IN_PROGRESS, Set.of(worker));
+        DailyReport dailyReport = DailyReport.builder()
+                .id(900L).workOrder(workOrder).date(LocalDate.of(2026, 8, 1))
+                .status(DailyReportStatus.DRAFT).build();
+
+        byte[] oversized = new byte[11 * 1024 * 1024];
+        MockMultipartFile file = new MockMultipartFile("file", "foto.jpg", "image/jpeg", oversized);
+
+        given(dailyReportRepository.findById(900L)).willReturn(Optional.of(dailyReport));
+        given(userRepository.findByEmail("worker@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(10L)).willReturn(Optional.of(worker));
+
+        assertThatThrownBy(() -> dailyReportService.uploadPhoto(900L, "worker@primatoos.test", file))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(storageService, never()).upload(any(), any(), any());
+    }
+
+    @Test
+    void shouldThrowBusinessRuleException_whenPhotoExtensionIsNotAllowed() {
+        User user = aWorkerUser(10L, "worker@primatoos.test");
+        Worker worker = aWorker(1L, user);
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.IN_PROGRESS, Set.of(worker));
+        DailyReport dailyReport = DailyReport.builder()
+                .id(900L).workOrder(workOrder).date(LocalDate.of(2026, 8, 1))
+                .status(DailyReportStatus.DRAFT).build();
+
+        MockMultipartFile file = new MockMultipartFile("file", "documento.pdf", "application/pdf", "conteudo".getBytes());
+
+        given(dailyReportRepository.findById(900L)).willReturn(Optional.of(dailyReport));
+        given(userRepository.findByEmail("worker@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(10L)).willReturn(Optional.of(worker));
+
+        assertThatThrownBy(() -> dailyReportService.uploadPhoto(900L, "worker@primatoos.test", file))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(storageService, never()).upload(any(), any(), any());
+    }
+
+    @Test
+    void shouldThrowBusinessRuleException_whenContentTypeDoesNotMatchExtension() {
+        User user = aWorkerUser(10L, "worker@primatoos.test");
+        Worker worker = aWorker(1L, user);
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.IN_PROGRESS, Set.of(worker));
+        DailyReport dailyReport = DailyReport.builder()
+                .id(900L).workOrder(workOrder).date(LocalDate.of(2026, 8, 1))
+                .status(DailyReportStatus.DRAFT).build();
+
+        MockMultipartFile file = new MockMultipartFile("file", "foto.jpg", "application/octet-stream",
+                "conteudo".getBytes());
+
+        given(dailyReportRepository.findById(900L)).willReturn(Optional.of(dailyReport));
+        given(userRepository.findByEmail("worker@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(10L)).willReturn(Optional.of(worker));
+
+        assertThatThrownBy(() -> dailyReportService.uploadPhoto(900L, "worker@primatoos.test", file))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
+    void shouldThrowBusinessRuleException_whenUploadingPhotoToFinalizedReport() {
+        User user = aWorkerUser(10L, "worker@primatoos.test");
+        Worker worker = aWorker(1L, user);
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.IN_PROGRESS, Set.of(worker));
+        DailyReport dailyReport = DailyReport.builder()
+                .id(900L).workOrder(workOrder).date(LocalDate.of(2026, 8, 1))
+                .status(DailyReportStatus.FINALIZED).build();
+
+        MockMultipartFile file = new MockMultipartFile("file", "foto.jpg", "image/jpeg", "conteudo".getBytes());
+
+        given(dailyReportRepository.findById(900L)).willReturn(Optional.of(dailyReport));
+        given(userRepository.findByEmail("worker@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(10L)).willReturn(Optional.of(worker));
+
+        assertThatThrownBy(() -> dailyReportService.uploadPhoto(900L, "worker@primatoos.test", file))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(storageService, never()).upload(any(), any(), any());
+    }
+
+    @Test
+    void shouldDeletePhoto_whenWorkerIsAssigned() {
+        User user = aWorkerUser(10L, "worker@primatoos.test");
+        Worker worker = aWorker(1L, user);
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.IN_PROGRESS, Set.of(worker));
+        DailyReport dailyReport = DailyReport.builder()
+                .id(900L).workOrder(workOrder).date(LocalDate.of(2026, 8, 1))
+                .status(DailyReportStatus.DRAFT).build();
+        DailyReportPhoto photo = DailyReportPhoto.builder()
+                .id(5L).dailyReport(dailyReport).url("https://cdn.primatoos.test/daily-reports/900/foto.jpg").build();
+
+        given(dailyReportRepository.findById(900L)).willReturn(Optional.of(dailyReport));
+        given(userRepository.findByEmail("worker@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(10L)).willReturn(Optional.of(worker));
+        given(dailyReportPhotoRepository.findById(5L)).willReturn(Optional.of(photo));
+
+        dailyReportService.deletePhoto(900L, 5L, "worker@primatoos.test");
+
+        verify(storageService).delete("https://cdn.primatoos.test/daily-reports/900/foto.jpg");
+        verify(dailyReportPhotoRepository).delete(photo);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundException_whenDeletingPhotoFromDifferentReport() {
+        User user = aWorkerUser(10L, "worker@primatoos.test");
+        Worker worker = aWorker(1L, user);
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.IN_PROGRESS, Set.of(worker));
+        DailyReport dailyReport = DailyReport.builder()
+                .id(900L).workOrder(workOrder).date(LocalDate.of(2026, 8, 1))
+                .status(DailyReportStatus.DRAFT).build();
+        DailyReport otherReport = DailyReport.builder().id(901L).build();
+        DailyReportPhoto photo = DailyReportPhoto.builder()
+                .id(5L).dailyReport(otherReport).url("https://cdn.primatoos.test/daily-reports/901/foto.jpg").build();
+
+        given(dailyReportRepository.findById(900L)).willReturn(Optional.of(dailyReport));
+        given(userRepository.findByEmail("worker@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(10L)).willReturn(Optional.of(worker));
+        given(dailyReportPhotoRepository.findById(5L)).willReturn(Optional.of(photo));
+
+        assertThatThrownBy(() -> dailyReportService.deletePhoto(900L, 5L, "worker@primatoos.test"))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(storageService, never()).delete(any());
     }
 }
