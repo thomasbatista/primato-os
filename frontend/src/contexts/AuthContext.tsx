@@ -4,6 +4,7 @@ import { clearToken, getToken, setToken } from '../services/tokenStorage'
 import type { UserRole } from '../types'
 
 export interface AuthUser {
+  name: string
   email: string
   role: UserRole
 }
@@ -17,6 +18,7 @@ export interface AuthContextValue {
 
 interface TokenPayload {
   sub: string
+  name: string
   role: UserRole
   exp: number
 }
@@ -29,7 +31,7 @@ function userFromToken(token: string): AuthUser | null {
       return null
     }
 
-    return { email: payload.sub, role: payload.role }
+    return { name: payload.name, email: payload.sub, role: payload.role }
   } catch {
     return null
   }

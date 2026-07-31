@@ -1,5 +1,6 @@
 package com.primatoos.backend.controller;
 
+import com.primatoos.backend.dto.auth.AuthMeResponse;
 import com.primatoos.backend.dto.auth.LoginRequest;
 import com.primatoos.backend.dto.auth.LoginResponse;
 import com.primatoos.backend.service.AuthService;
@@ -26,7 +27,7 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<String> me(Authentication authentication) {
-        return ResponseEntity.ok(authentication.getName());
+    public ResponseEntity<AuthMeResponse> me(Authentication authentication) {
+        return ResponseEntity.ok(authService.me(authentication.getName()));
     }
 }

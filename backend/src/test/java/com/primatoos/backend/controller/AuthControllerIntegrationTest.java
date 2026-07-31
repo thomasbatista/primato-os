@@ -3,6 +3,8 @@ package com.primatoos.backend.controller;
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
 import com.primatoos.backend.repository.UserRepository;
+import com.primatoos.backend.security.JwtService;
+import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,9 +15,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -35,6 +37,37 @@ class AuthControllerIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Test
+    void shouldIncludeNameClaim_inGeneratedToken() throws Exception {
+        userRepository.save(User.builder()
+                .name("Claim Test Manager")
+                .email("claimtest@primatoos.test")
+                .password(passwordEncoder.encode("secret123"))
+                .role(UserRole.MANAGER)
+                .build());
+
+        String loginBody = """
+                {"email": "claimtest@primatoos.test", "password": "secret123"}
+                """;
+
+        String response = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginBody))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String token = objectMapper.readTree(response).get("token").asText();
+        Claims claims = jwtService.extractClaims(token);
+
+        assertThat(claims.get("name", String.class)).isEqualTo("Claim Test Manager");
+        assertThat(claims.get("role", String.class)).isEqualTo("MANAGER");
+    }
 
     @Test
     void shouldReturnTokenAndAllowAccessToProtectedEndpoint_whenCredentialsAreValid() throws Exception {
@@ -63,7 +96,9 @@ class AuthControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/auth/me")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(content().string("manager@primatoos.test"));
+                .andExpect(jsonPath("$.name").value("Test Manager"))
+                .andExpect(jsonPath("$.email").value("manager@primatoos.test"))
+                .andExpect(jsonPath("$.role").value("MANAGER"));
     }
 
     @Test

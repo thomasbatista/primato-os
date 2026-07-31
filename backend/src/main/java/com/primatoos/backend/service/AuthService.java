@@ -1,8 +1,10 @@
 package com.primatoos.backend.service;
 
+import com.primatoos.backend.dto.auth.AuthMeResponse;
 import com.primatoos.backend.dto.auth.LoginRequest;
 import com.primatoos.backend.dto.auth.LoginResponse;
 import com.primatoos.backend.exception.InvalidCredentialsException;
+import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.repository.UserRepository;
 import com.primatoos.backend.security.JwtService;
@@ -27,5 +29,12 @@ public class AuthService {
         }
 
         return new LoginResponse(jwtService.generateToken(user));
+    }
+
+    public AuthMeResponse me(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        return new AuthMeResponse(user.getName(), user.getEmail(), user.getRole());
     }
 }
