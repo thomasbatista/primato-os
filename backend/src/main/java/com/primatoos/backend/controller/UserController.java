@@ -2,6 +2,7 @@ package com.primatoos.backend.controller;
 
 import com.primatoos.backend.dto.user.UserCreateRequest;
 import com.primatoos.backend.dto.user.UserResponse;
+import com.primatoos.backend.model.UserRole;
 import com.primatoos.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,7 +33,8 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<UserResponse>> findAll(@PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(userService.findAll(pageable));
+    public ResponseEntity<Page<UserResponse>> findAll(@RequestParam(required = false) UserRole role,
+                                                        @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(userService.findAll(role, pageable));
     }
 }

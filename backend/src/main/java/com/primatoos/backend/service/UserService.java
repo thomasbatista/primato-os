@@ -5,6 +5,7 @@ import com.primatoos.backend.dto.user.UserResponse;
 import com.primatoos.backend.exception.BusinessRuleException;
 import com.primatoos.backend.mapper.UserMapper;
 import com.primatoos.backend.model.User;
+import com.primatoos.backend.model.UserRole;
 import com.primatoos.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -35,7 +36,8 @@ public class UserService {
         return userMapper.toResponse(userRepository.save(user));
     }
 
-    public Page<UserResponse> findAll(Pageable pageable) {
-        return userRepository.findAll(pageable).map(userMapper::toResponse);
+    public Page<UserResponse> findAll(UserRole role, Pageable pageable) {
+        Page<User> users = role != null ? userRepository.findByRole(role, pageable) : userRepository.findAll(pageable);
+        return users.map(userMapper::toResponse);
     }
 }

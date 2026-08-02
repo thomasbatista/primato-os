@@ -81,15 +81,29 @@ class UserServiceTest {
     }
 
     @Test
-    void shouldReturnPaginatedUsers() {
+    void shouldReturnPaginatedUsers_whenRoleFilterIsNotProvided() {
         User user = User.builder()
                 .id(1L).name("Usuario").email("u@primatoos.test").password("hash").role(UserRole.MANAGER).build();
         Pageable pageable = PageRequest.of(0, 10);
         given(userRepository.findAll(pageable)).willReturn(new PageImpl<>(List.of(user)));
 
-        Page<UserResponse> page = userService.findAll(pageable);
+        Page<UserResponse> page = userService.findAll(null, pageable);
 
         assertThat(page.getTotalElements()).isEqualTo(1);
         assertThat(page.getContent().get(0).email()).isEqualTo("u@primatoos.test");
+    }
+
+    @Test
+    void shouldReturnOnlyManagers_whenRoleFilterIsManager() {
+        User manager = User.builder()
+                .id(2L).name("Gestor").email("g@primatoos.test").password("hash").role(UserRole.MANAGER).build();
+        Pageable pageable = PageRequest.of(0, 10);
+        given(userRepository.findByRole(UserRole.MANAGER, pageable)).willReturn(new PageImpl<>(List.of(manager)));
+
+        Page<UserResponse> page = userService.findAll(UserRole.MANAGER, pageable);
+
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).role()).isEqualTo(UserRole.MANAGER);
+        verify(userRepository, never()).findAll(pageable);
     }
 }

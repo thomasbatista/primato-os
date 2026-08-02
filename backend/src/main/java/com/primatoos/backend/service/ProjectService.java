@@ -45,8 +45,11 @@ public class ProjectService {
         return projectMapper.toResponse(projectRepository.save(project));
     }
 
-    public Page<ProjectResponse> findAll(Pageable pageable) {
-        return projectRepository.findAll(pageable).map(projectMapper::toResponse);
+    public Page<ProjectResponse> findAll(ProjectStatus status, Pageable pageable) {
+        Page<Project> projects = status != null
+                ? projectRepository.findByStatus(status, pageable)
+                : projectRepository.findAll(pageable);
+        return projects.map(projectMapper::toResponse);
     }
 
     public ProjectResponse findById(Long id) {

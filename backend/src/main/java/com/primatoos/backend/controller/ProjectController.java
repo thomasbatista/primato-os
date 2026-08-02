@@ -3,6 +3,7 @@ package com.primatoos.backend.controller;
 import com.primatoos.backend.dto.project.ProjectCreateRequest;
 import com.primatoos.backend.dto.project.ProjectResponse;
 import com.primatoos.backend.dto.project.ProjectUpdateRequest;
+import com.primatoos.backend.model.ProjectStatus;
 import com.primatoos.backend.service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -35,8 +37,9 @@ public class ProjectController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ProjectResponse>> findAll(@PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(projectService.findAll(pageable));
+    public ResponseEntity<Page<ProjectResponse>> findAll(@RequestParam(required = false) ProjectStatus status,
+                                                           @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(projectService.findAll(status, pageable));
     }
 
     @GetMapping("/{id}")
