@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { ProtectedRoute } from './ProtectedRoute'
+import { ManagerLayout } from '../components/ManagerLayout'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { UnauthorizedPage } from '../pages/UnauthorizedPage'
@@ -24,7 +25,12 @@ const router = createBrowserRouter([
   {
     path: '/manager',
     element: <ProtectedRoute allowedRole="MANAGER" />,
-    children: [{ index: true, element: <ManagerDashboardPage /> }],
+    children: [
+      {
+        element: <ManagerLayout />,
+        children: [{ index: true, element: <ManagerDashboardPage /> }],
+      },
+    ],
   },
   {
     path: '/worker',
