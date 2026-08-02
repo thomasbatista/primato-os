@@ -5,6 +5,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    // fixed so it always matches ALLOWED_ORIGINS in backend/.env — without this,
+    // Vite silently falls back to another port when 5173 is taken, breaking CORS
+    port: 5183,
+    strictPort: true,
+  },
   plugins: [
     react(),
     tailwindcss(),
