@@ -72,74 +72,78 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-8 text-center text-2xl font-semibold text-gray-900">Primato OS</h1>
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="bg-primary py-5 text-center">
+        <h1 className="text-xl font-semibold tracking-wide text-white">Primato OS</h1>
+      </header>
 
-        <form
-          noValidate
-          onSubmit={handleSubmit}
-          className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8"
-        >
-          {submitError && (
-            <div
-              role="alert"
-              className="mb-5 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
-            >
-              {submitError}
-            </div>
-          )}
-
-          <div className="mb-4">
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value)
-                setFieldErrors((prev) => ({ ...prev, email: undefined }))
-              }}
-              aria-invalid={fieldErrors.email ? true : undefined}
-              className="w-full rounded-md border border-gray-300 px-3 py-2.5 text-base text-gray-900 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
-            />
-            {fieldErrors.email && (
-              <p className="mt-1.5 text-sm text-red-600">{fieldErrors.email}</p>
-            )}
-          </div>
-
-          <div className="mb-6">
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-700">
-              Senha
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => {
-                setPassword(event.target.value)
-                setFieldErrors((prev) => ({ ...prev, password: undefined }))
-              }}
-              aria-invalid={fieldErrors.password ? true : undefined}
-              className="w-full rounded-md border border-gray-300 px-3 py-2.5 text-base text-gray-900 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
-            />
-            {fieldErrors.password && (
-              <p className="mt-1.5 text-sm text-red-600">{fieldErrors.password}</p>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-md bg-purple-600 px-4 py-2.5 text-base font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
+        <div className="w-full max-w-sm">
+          <form
+            noValidate
+            onSubmit={handleSubmit}
+            className="rounded-lg border border-muted bg-white p-6 shadow-sm sm:p-8"
           >
-            {isSubmitting ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
+            {submitError && (
+              <div
+                role="alert"
+                className="mb-5 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+              >
+                {submitError}
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  setFieldErrors((prev) => ({ ...prev, email: undefined }))
+                }}
+                aria-invalid={fieldErrors.email ? true : undefined}
+                className="w-full rounded-md border border-muted px-3 py-2.5 text-base text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+              />
+              {fieldErrors.email && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.email}</p>
+              )}
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
+                Senha
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value)
+                  setFieldErrors((prev) => ({ ...prev, password: undefined }))
+                }}
+                aria-invalid={fieldErrors.password ? true : undefined}
+                className="w-full rounded-md border border-muted px-3 py-2.5 text-base text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+              />
+              {fieldErrors.password && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.password}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full rounded-md bg-accent px-4 py-2.5 text-base font-medium text-foreground transition hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   )

@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Brand palette from the Construtora Primato institutional site — see frontend/CLAUDE.md */
+@theme {
+  --color-primary: #0f1f35;
+  --color-accent: #c9a227;
+  --color-foreground: #0a0a0a;
+  --color-background: #f5f6f8;
+  --color-muted: #b0b8c1;
+}
+
 body {
   margin: 0;
 }

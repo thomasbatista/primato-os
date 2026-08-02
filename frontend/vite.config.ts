@@ -21,7 +21,7 @@ export default defineConfig({
         name: 'Primato OS',
         short_name: 'Primato OS',
         description: 'Sistema de gestão de obras',
-        theme_color: '#aa3bff',
+        theme_color: '#0f1f35',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
