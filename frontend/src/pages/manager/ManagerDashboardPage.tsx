@@ -82,7 +82,7 @@ export function ManagerDashboardPage() {
 
   const projectItems: DashboardCardItem[] = dashboard.activeProjects.items.map((project) => ({
     id: project.id,
-    href: `/manager/projects/${project.id}`,
+    href: `/manager/projects/${project.id}/edit`,
     label: project.name,
     sublabel: project.client,
   }))

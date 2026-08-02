@@ -6,6 +6,8 @@ import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { UnauthorizedPage } from '../pages/UnauthorizedPage'
 import { ManagerDashboardPage } from '../pages/manager/ManagerDashboardPage'
+import { ProjectListPage } from '../pages/manager/ProjectListPage'
+import { ProjectFormPage } from '../pages/manager/ProjectFormPage'
 import { WorkerHomePage } from '../pages/worker/WorkerHomePage'
 
 function RootRedirect() {
@@ -28,7 +30,12 @@ const router = createBrowserRouter([
     children: [
       {
         element: <ManagerLayout />,
-        children: [{ index: true, element: <ManagerDashboardPage /> }],
+        children: [
+          { index: true, element: <ManagerDashboardPage /> },
+          { path: 'projects', element: <ProjectListPage /> },
+          { path: 'projects/new', element: <ProjectFormPage /> },
+          { path: 'projects/:id/edit', element: <ProjectFormPage /> },
+        ],
       },
     ],
   },
