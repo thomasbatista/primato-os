@@ -62,7 +62,7 @@ export function DashboardSectionCard({
       )}
 
       {count > items.length && (
-        <Link to={viewAllHref} className="mt-3 text-sm font-medium text-primary hover:underline">
+        <Link to={viewAllHref} className="mt-3 text-sm font-medium text-accent-dark hover:underline">
           Ver todos ({count})
         </Link>
       )}

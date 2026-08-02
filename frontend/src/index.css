@@ -4,6 +4,8 @@
 @theme {
   --color-primary: #0f1f35;
   --color-accent: #c9a227;
+  /* darkened gold for text/links on light backgrounds — #c9a227 fails contrast as text (~2.2:1) */
+  --color-accent-dark: #8a6d1a;
   --color-foreground: #0a0a0a;
   --color-background: #f5f6f8;
   --color-muted: #b0b8c1;

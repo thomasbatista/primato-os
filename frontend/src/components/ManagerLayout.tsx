@@ -46,7 +46,7 @@ export function ManagerLayout() {
               className={({ isActive }) =>
                 `whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition ${
                   isActive
-                    ? 'border-primary text-primary'
+                    ? 'border-accent-dark text-accent-dark'
                     : 'border-transparent text-gray-500 hover:text-foreground'
                 }`
               }
