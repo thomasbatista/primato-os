@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
+import { FormField } from '../../components/FormField'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { createProject, getProject, updateProject } from '../../services/projectService'
 import { getManagers } from '../../services/userService'
@@ -39,27 +40,6 @@ const EMPTY_FORM: FormState = {
   currentStage: '',
   status: '',
   notes: '',
-}
-
-interface FieldProps {
-  id: string
-  label: string
-  error?: string
-  required?: boolean
-  children: ReactNode
-}
-
-function Field({ id, label, error, required, children }: FieldProps) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-foreground">
-        {label}
-        {required && <span className="text-red-600"> *</span>}
-      </label>
-      {children}
-      {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
-    </div>
-  )
 }
 
 export function ProjectFormPage() {
@@ -238,7 +218,7 @@ export function ProjectFormPage() {
           </div>
         )}
 
-        <Field id="name" label="Nome da obra" error={fieldErrors.name} required>
+        <FormField id="name" label="Nome da obra" error={fieldErrors.name} required>
           <input
             id="name"
             type="text"
@@ -246,9 +226,9 @@ export function ProjectFormPage() {
             onChange={(event) => updateField('name', event.target.value)}
             className={inputClass}
           />
-        </Field>
+        </FormField>
 
-        <Field id="client" label="Cliente" error={fieldErrors.client} required>
+        <FormField id="client" label="Cliente" error={fieldErrors.client} required>
           <input
             id="client"
             type="text"
@@ -256,9 +236,9 @@ export function ProjectFormPage() {
             onChange={(event) => updateField('client', event.target.value)}
             className={inputClass}
           />
-        </Field>
+        </FormField>
 
-        <Field id="address" label="Endereço">
+        <FormField id="address" label="Endereço">
           <input
             id="address"
             type="text"
@@ -266,9 +246,9 @@ export function ProjectFormPage() {
             onChange={(event) => updateField('address', event.target.value)}
             className={inputClass}
           />
-        </Field>
+        </FormField>
 
-        <Field id="responsibleUserId" label="Responsável" error={fieldErrors.responsibleUserId} required>
+        <FormField id="responsibleUserId" label="Responsável" error={fieldErrors.responsibleUserId} required>
           <select
             id="responsibleUserId"
             value={form.responsibleUserId}
@@ -282,10 +262,10 @@ export function ProjectFormPage() {
               </option>
             ))}
           </select>
-        </Field>
+        </FormField>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Field id="startDate" label="Data de início">
+          <FormField id="startDate" label="Data de início">
             <input
               id="startDate"
               type="date"
@@ -293,8 +273,8 @@ export function ProjectFormPage() {
               onChange={(event) => updateField('startDate', event.target.value)}
               className={inputClass}
             />
-          </Field>
-          <Field id="expectedDeadline" label="Prazo previsto">
+          </FormField>
+          <FormField id="expectedDeadline" label="Prazo previsto">
             <input
               id="expectedDeadline"
               type="date"
@@ -302,10 +282,10 @@ export function ProjectFormPage() {
               onChange={(event) => updateField('expectedDeadline', event.target.value)}
               className={inputClass}
             />
-          </Field>
+          </FormField>
         </div>
 
-        <Field id="currentStage" label="Etapa atual">
+        <FormField id="currentStage" label="Etapa atual">
           <input
             id="currentStage"
             type="text"
@@ -313,10 +293,10 @@ export function ProjectFormPage() {
             onChange={(event) => updateField('currentStage', event.target.value)}
             className={inputClass}
           />
-        </Field>
+        </FormField>
 
         {isEditMode && (
-          <Field id="status" label="Status" error={fieldErrors.status} required>
+          <FormField id="status" label="Status" error={fieldErrors.status} required>
             <select
               id="status"
               value={form.status}
@@ -330,10 +310,10 @@ export function ProjectFormPage() {
                 </option>
               ))}
             </select>
-          </Field>
+          </FormField>
         )}
 
-        <Field id="notes" label="Observações">
+        <FormField id="notes" label="Observações">
           <textarea
             id="notes"
             value={form.notes}
@@ -341,7 +321,7 @@ export function ProjectFormPage() {
             rows={3}
             className={inputClass}
           />
-        </Field>
+        </FormField>
 
         <div className="flex items-center gap-3 pt-2">
           <button

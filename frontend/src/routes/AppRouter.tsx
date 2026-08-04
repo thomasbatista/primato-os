@@ -8,6 +8,9 @@ import { UnauthorizedPage } from '../pages/UnauthorizedPage'
 import { ManagerDashboardPage } from '../pages/manager/ManagerDashboardPage'
 import { ProjectListPage } from '../pages/manager/ProjectListPage'
 import { ProjectFormPage } from '../pages/manager/ProjectFormPage'
+import { WorkOrderListPage } from '../pages/manager/WorkOrderListPage'
+import { WorkOrderDetailPage } from '../pages/manager/WorkOrderDetailPage'
+import { WorkOrderFormPage } from '../pages/manager/WorkOrderFormPage'
 import { WorkerHomePage } from '../pages/worker/WorkerHomePage'
 
 function RootRedirect() {
@@ -35,6 +38,10 @@ const router = createBrowserRouter([
           { path: 'projects', element: <ProjectListPage /> },
           { path: 'projects/new', element: <ProjectFormPage /> },
           { path: 'projects/:id/edit', element: <ProjectFormPage /> },
+          { path: 'work-orders', element: <WorkOrderListPage /> },
+          { path: 'work-orders/new', element: <WorkOrderFormPage /> },
+          { path: 'work-orders/:id', element: <WorkOrderDetailPage /> },
+          { path: 'work-orders/:id/edit', element: <WorkOrderFormPage /> },
         ],
       },
     ],
