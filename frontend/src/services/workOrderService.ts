@@ -18,6 +18,18 @@ export async function getWorkOrder(id: number): Promise<WorkOrderResponse> {
   return response.data
 }
 
+export async function getMyWorkOrders(page = 0, size = 20): Promise<Page<WorkOrderResponse>> {
+  const response = await api.get<Page<WorkOrderResponse>>('/work-orders/mine', { params: { page, size } })
+  return response.data
+}
+
+// GET /work-orders/{id} is manager-only — workers hit this sibling endpoint instead,
+// which checks assignment ownership server-side.
+export async function getMyWorkOrder(id: number): Promise<WorkOrderResponse> {
+  const response = await api.get<WorkOrderResponse>(`/work-orders/mine/${id}`)
+  return response.data
+}
+
 export async function createWorkOrder(request: WorkOrderCreateRequest): Promise<WorkOrderResponse> {
   const response = await api.post<WorkOrderResponse>('/work-orders', request)
   return response.data
