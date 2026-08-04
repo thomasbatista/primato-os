@@ -102,6 +102,13 @@ public class DailyReportService {
         return dailyReportRepository.findByWorkOrderId(workOrderId, pageable).map(dailyReportMapper::toResponse);
     }
 
+    public Page<DailyReportResponse> findMyReports(String email, Long workOrderId, Pageable pageable) {
+        Worker worker = resolveWorkerOrThrow(email);
+
+        return dailyReportRepository.findByFilledByWorker(worker.getId(), workOrderId, pageable)
+                .map(dailyReportMapper::toResponse);
+    }
+
     public DailyReportResponse findById(Long id, String email) {
         DailyReport dailyReport = findDailyReportOrThrow(id);
         enforceViewPermission(email, dailyReport.getWorkOrder());

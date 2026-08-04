@@ -111,4 +111,10 @@ public class WorkOrderController {
                                                               @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(workOrderService.findMyWorkOrders(authentication.getName(), pageable));
     }
+
+    @GetMapping("/mine/{id}")
+    @PreAuthorize("hasRole('WORKER')")
+    public ResponseEntity<WorkOrderResponse> findMineById(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(workOrderService.findMyWorkOrderById(id, authentication.getName()));
+    }
 }

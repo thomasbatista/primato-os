@@ -4,6 +4,7 @@ import com.primatoos.backend.dto.workorder.WorkOrderCreateRequest;
 import com.primatoos.backend.dto.workorder.WorkOrderResponse;
 import com.primatoos.backend.dto.workorder.WorkOrderUpdateRequest;
 import com.primatoos.backend.exception.BusinessRuleException;
+import com.primatoos.backend.exception.ForbiddenOperationException;
 import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.ProjectMapper;
 import com.primatoos.backend.mapper.UserMapper;
@@ -324,5 +325,40 @@ class WorkOrderServiceTest {
 
         assertThat(page.getTotalElements()).isEqualTo(1);
         assertThat(page.getContent().get(0).id()).isEqualTo(100L);
+    }
+
+    @Test
+    void shouldReturnWorkOrder_whenWorkerIsAssigned() {
+        User user = User.builder()
+                .id(21L).name("Com Perfil").email("com-worker@primatoos.test").password("hash")
+                .role(UserRole.WORKER).build();
+        Worker worker = Worker.builder().id(7L).name("Com Perfil").user(user).build();
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.RELEASED);
+        workOrder.setAssignedWorkers(Set.of(worker));
+
+        given(workOrderRepository.findById(100L)).willReturn(Optional.of(workOrder));
+        given(userRepository.findByEmail("com-worker@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(21L)).willReturn(Optional.of(worker));
+
+        WorkOrderResponse response = workOrderService.findMyWorkOrderById(100L, "com-worker@primatoos.test");
+
+        assertThat(response.id()).isEqualTo(100L);
+    }
+
+    @Test
+    void shouldThrowForbiddenOperationException_whenWorkerIsNotAssignedToWorkOrder() {
+        User user = User.builder()
+                .id(22L).name("Sem Vinculo").email("sem-vinculo@primatoos.test").password("hash")
+                .role(UserRole.WORKER).build();
+        Worker worker = Worker.builder().id(8L).name("Sem Vinculo").user(user).build();
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.RELEASED);
+        workOrder.setAssignedWorkers(Set.of());
+
+        given(workOrderRepository.findById(100L)).willReturn(Optional.of(workOrder));
+        given(userRepository.findByEmail("sem-vinculo@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(22L)).willReturn(Optional.of(worker));
+
+        assertThatThrownBy(() -> workOrderService.findMyWorkOrderById(100L, "sem-vinculo@primatoos.test"))
+                .isInstanceOf(ForbiddenOperationException.class);
     }
 }

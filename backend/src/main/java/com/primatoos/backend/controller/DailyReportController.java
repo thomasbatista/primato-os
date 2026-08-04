@@ -91,4 +91,13 @@ public class DailyReportController {
         dailyReportService.deletePhoto(id, photoId, authentication.getName());
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/mine")
+    @PreAuthorize("hasRole('WORKER')")
+    public ResponseEntity<Page<DailyReportResponse>> findMine(Authentication authentication,
+                                                                @RequestParam(required = false) Long workOrderId,
+                                                                @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(
+                dailyReportService.findMyReports(authentication.getName(), workOrderId, pageable));
+    }
 }

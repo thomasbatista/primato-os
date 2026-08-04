@@ -4,6 +4,7 @@ import com.primatoos.backend.dto.workorder.WorkOrderCreateRequest;
 import com.primatoos.backend.dto.workorder.WorkOrderResponse;
 import com.primatoos.backend.dto.workorder.WorkOrderUpdateRequest;
 import com.primatoos.backend.exception.BusinessRuleException;
+import com.primatoos.backend.exception.ForbiddenOperationException;
 import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.WorkOrderMapper;
 import com.primatoos.backend.model.Project;
@@ -161,6 +162,20 @@ public class WorkOrderService {
                 .orElse(Page.empty(pageable));
     }
 
+    public WorkOrderResponse findMyWorkOrderById(Long id, String email) {
+        WorkOrder workOrder = findWorkOrderOrThrow(id);
+        Worker worker = resolveWorkerOrThrow(email);
+
+        boolean isAssigned = workOrder.getAssignedWorkers().stream()
+                .anyMatch(assigned -> assigned.getId().equals(worker.getId()));
+
+        if (!isAssigned) {
+            throw new ForbiddenOperationException("Você não está atribuído a esta ordem de serviço");
+        }
+
+        return workOrderMapper.toResponse(workOrder);
+    }
+
     private WorkOrderResponse transition(Long id, WorkOrderStatus target) {
         WorkOrder workOrder = findWorkOrderOrThrow(id);
         WorkOrderStatus current = workOrder.getStatus();
@@ -183,6 +198,14 @@ public class WorkOrderService {
     private WorkOrder findWorkOrderOrThrow(Long id) {
         return workOrderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço não encontrada"));
+    }
+
+    private Worker resolveWorkerOrThrow(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        return workerRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Colaborador não encontrado"));
     }
 
     private Project findProjectOrThrow(Long projectId) {

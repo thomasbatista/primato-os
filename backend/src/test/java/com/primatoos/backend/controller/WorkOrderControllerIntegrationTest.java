@@ -158,6 +158,71 @@ class WorkOrderControllerIntegrationTest {
     }
 
     @Test
+    void shouldReturnWorkOrder_whenWorkerCallsMineByIdEndpointAndIsAssigned() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor Mine ById").email("gestor.mine.byid@primatoos.test").password("unused")
+                .role(UserRole.MANAGER).build());
+        Project project = projectRepository.save(Project.builder()
+                .name("Obra Mine ById").client("Cliente Mine ById").responsibleUser(manager)
+                .status(ProjectStatus.PLANNING).build());
+
+        User workerUser = userRepository.save(User.builder()
+                .name("Colaborador Mine ById").email("worker.mine.byid@primatoos.test").password("unused")
+                .role(UserRole.WORKER).build());
+        Worker worker = workerRepository.save(Worker.builder().name("Colaborador Mine ById").user(workerUser).build());
+
+        WorkOrder workOrder = workOrderRepository.save(WorkOrder.builder()
+                .orderNumber(workOrderRepository.nextOrderNumber())
+                .project(project)
+                .date(LocalDate.of(2026, 8, 1))
+                .responsibleUser(manager)
+                .stage("Fundação")
+                .description("Concretar fundação")
+                .status(WorkOrderStatus.RELEASED)
+                .assignedWorkers(Set.of(worker))
+                .build());
+
+        String token = jwtService.generateToken(workerUser);
+
+        mockMvc.perform(get("/api/v1/work-orders/mine/" + workOrder.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(workOrder.getId()));
+    }
+
+    @Test
+    void shouldReturnForbidden_whenWorkerCallsMineByIdEndpointForUnassignedWorkOrder() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor Mine ById Forbidden").email("gestor.mine.byid.forbidden@primatoos.test")
+                .password("unused").role(UserRole.MANAGER).build());
+        Project project = projectRepository.save(Project.builder()
+                .name("Obra Mine ById Forbidden").client("Cliente Mine ById Forbidden").responsibleUser(manager)
+                .status(ProjectStatus.PLANNING).build());
+
+        WorkOrder workOrder = workOrderRepository.save(WorkOrder.builder()
+                .orderNumber(workOrderRepository.nextOrderNumber())
+                .project(project)
+                .date(LocalDate.of(2026, 8, 1))
+                .responsibleUser(manager)
+                .stage("Fundação")
+                .description("Concretar fundação")
+                .status(WorkOrderStatus.RELEASED)
+                .build());
+
+        User workerUser = userRepository.save(User.builder()
+                .name("Colaborador Sem Vinculo ById").email("worker.mine.byid.novinculo@primatoos.test")
+                .password("unused").role(UserRole.WORKER).build());
+        workerRepository.save(Worker.builder().name("Colaborador Sem Vinculo ById").user(workerUser).build());
+
+        String token = jwtService.generateToken(workerUser);
+
+        mockMvc.perform(get("/api/v1/work-orders/mine/" + workOrder.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
     void shouldReturnPdf_whenAuthenticatedAsManager() throws Exception {
         User manager = userRepository.save(User.builder()
                 .name("Gestor PDF").email("gestor.pdf.wo@primatoos.test").password("unused").role(UserRole.MANAGER)

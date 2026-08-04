@@ -480,4 +480,37 @@ class DailyReportControllerIntegrationTest {
 
         verify(storageService).delete("https://cdn.primatoos.test/daily-reports/" + reportId + "/generated.jpg");
     }
+
+    @Test
+    void shouldListOwnReports_whenAuthenticatedAsWorker() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor Mine").email("gestor.mine@primatoos.test").password("unused").role(UserRole.MANAGER)
+                .build());
+        User workerUser = userRepository.save(User.builder()
+                .name("Colaborador Mine").email("worker.mine@primatoos.test").password("unused")
+                .role(UserRole.WORKER).build());
+        Worker worker = workerRepository.save(Worker.builder().name("Colaborador Mine").user(workerUser).build());
+        WorkOrder workOrder = createReportableWorkOrder(manager, worker);
+
+        String workerToken = jwtService.generateToken(workerUser);
+        createDraftReport(workerToken, workOrder.getId());
+
+        mockMvc.perform(get("/api/v1/daily-reports/mine")
+                        .header("Authorization", "Bearer " + workerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1));
+    }
+
+    @Test
+    void shouldReturnForbidden_whenManagerListsOwnReports() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor Mine Forbidden").email("gestor.mine.forbidden@primatoos.test").password("unused")
+                .role(UserRole.MANAGER).build());
+
+        String token = jwtService.generateToken(manager);
+
+        mockMvc.perform(get("/api/v1/daily-reports/mine")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
 }

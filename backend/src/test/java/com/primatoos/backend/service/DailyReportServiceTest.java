@@ -368,6 +368,48 @@ class DailyReportServiceTest {
     }
 
     @Test
+    void shouldReturnMyReports_whenWorkOrderFilterIsNotProvided() {
+        User user = aWorkerUser(10L, "worker@primatoos.test");
+        Worker worker = aWorker(1L, user);
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.IN_PROGRESS, Set.of(worker));
+        DailyReport dailyReport = DailyReport.builder()
+                .id(900L).workOrder(workOrder).date(LocalDate.of(2026, 8, 1)).filledByWorker(worker)
+                .status(DailyReportStatus.DRAFT).build();
+
+        given(userRepository.findByEmail("worker@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(10L)).willReturn(Optional.of(worker));
+
+        Pageable pageable = PageRequest.of(0, 10);
+        given(dailyReportRepository.findByFilledByWorker(1L, null, pageable))
+                .willReturn(new PageImpl<>(List.of(dailyReport)));
+
+        Page<DailyReportResponse> page = dailyReportService.findMyReports("worker@primatoos.test", null, pageable);
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldReturnMyReports_filteredByWorkOrder_whenWorkOrderIdIsProvided() {
+        User user = aWorkerUser(10L, "worker@primatoos.test");
+        Worker worker = aWorker(1L, user);
+        WorkOrder workOrder = aWorkOrder(WorkOrderStatus.IN_PROGRESS, Set.of(worker));
+        DailyReport dailyReport = DailyReport.builder()
+                .id(900L).workOrder(workOrder).date(LocalDate.of(2026, 8, 1)).filledByWorker(worker)
+                .status(DailyReportStatus.DRAFT).build();
+
+        given(userRepository.findByEmail("worker@primatoos.test")).willReturn(Optional.of(user));
+        given(workerRepository.findByUserId(10L)).willReturn(Optional.of(worker));
+
+        Pageable pageable = PageRequest.of(0, 10);
+        given(dailyReportRepository.findByFilledByWorker(1L, 500L, pageable))
+                .willReturn(new PageImpl<>(List.of(dailyReport)));
+
+        Page<DailyReportResponse> page = dailyReportService.findMyReports("worker@primatoos.test", 500L, pageable);
+
+        assertThat(page.getContent()).hasSize(1);
+    }
+
+    @Test
     void shouldUploadPhoto_whenWorkerIsAssignedAndFileIsValid() {
         User user = aWorkerUser(10L, "worker@primatoos.test");
         Worker worker = aWorker(1L, user);
