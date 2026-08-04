@@ -39,8 +39,9 @@ public class WorkerService {
         return workerMapper.toResponse(workerRepository.save(worker));
     }
 
-    public Page<WorkerResponse> findAll(Pageable pageable) {
-        return workerRepository.findAll(pageable).map(workerMapper::toResponse);
+    public Page<WorkerResponse> findAll(Boolean active, Pageable pageable) {
+        Page<Worker> workers = active != null ? workerRepository.findByActive(active, pageable) : workerRepository.findAll(pageable);
+        return workers.map(workerMapper::toResponse);
     }
 
     public WorkerResponse findById(Long id) {

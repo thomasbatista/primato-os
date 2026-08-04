@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -35,8 +36,9 @@ public class WorkerController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<WorkerResponse>> findAll(@PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(workerService.findAll(pageable));
+    public ResponseEntity<Page<WorkerResponse>> findAll(@RequestParam(required = false) Boolean active,
+                                                          @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(workerService.findAll(active, pageable));
     }
 
     @GetMapping("/{id}")

@@ -17,12 +17,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -154,5 +160,30 @@ class WorkerServiceTest {
 
         assertThatThrownBy(() -> workerService.deactivate(999L))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldReturnAllWorkers_whenActiveFilterIsNotProvided() {
+        Worker worker = Worker.builder().id(1L).name("Colaborador").active(true).build();
+        Pageable pageable = PageRequest.of(0, 10);
+        given(workerRepository.findAll(pageable)).willReturn(new PageImpl<>(List.of(worker)));
+
+        Page<WorkerResponse> page = workerService.findAll(null, pageable);
+
+        assertThat(page.getContent()).hasSize(1);
+        verify(workerRepository, never()).findByActive(anyBoolean(), any());
+    }
+
+    @Test
+    void shouldReturnOnlyActiveWorkers_whenActiveFilterIsTrue() {
+        Worker worker = Worker.builder().id(2L).name("Colaborador Ativo").active(true).build();
+        Pageable pageable = PageRequest.of(0, 10);
+        given(workerRepository.findByActive(true, pageable)).willReturn(new PageImpl<>(List.of(worker)));
+
+        Page<WorkerResponse> page = workerService.findAll(true, pageable);
+
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).active()).isTrue();
+        verify(workerRepository, never()).findAll(pageable);
     }
 }
