@@ -1,6 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
+import { dangerButtonClass, primaryButtonClass, secondaryButtonClass } from '../../components/buttonStyles'
+import { DetailField } from '../../components/DetailField'
+import { formatDate, formatTime } from '../../components/formatters'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { StatusBadge } from '../../components/StatusBadge'
 import {
@@ -14,36 +17,6 @@ import {
 } from '../../services/workOrderService'
 import type { ErrorResponse, WorkOrderResponse } from '../../types'
 import { WORK_ORDER_STATUS_TONE, workOrderStatusLabel } from './workOrderStatusOptions'
-
-const primaryButtonClass =
-  'rounded-md bg-accent px-4 py-2 text-sm font-medium text-foreground transition hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
-const dangerButtonClass =
-  'rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60'
-const secondaryButtonClass =
-  'rounded-md border border-muted px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-50'
-
-function formatDate(isoDate: string): string {
-  const [year, month, day] = isoDate.split('-')
-  return `${day}/${month}/${year}`
-}
-
-function formatTime(isoTime: string | null): string | null {
-  return isoTime ? isoTime.slice(0, 5) : null
-}
-
-interface DetailFieldProps {
-  label: string
-  children: ReactNode
-}
-
-function DetailField({ label, children }: DetailFieldProps) {
-  return (
-    <div>
-      <dt className="text-xs font-medium text-gray-500">{label}</dt>
-      <dd className="mt-0.5 text-sm text-foreground">{children || '—'}</dd>
-    </div>
-  )
-}
 
 export function WorkOrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -242,6 +215,12 @@ export function WorkOrderDetailPage() {
             >
               {isDownloading ? 'Baixando...' : 'Baixar PDF'}
             </button>
+            <Link
+              to={`/manager/daily-reports?workOrderId=${workOrder.id}`}
+              className={secondaryButtonClass}
+            >
+              Ver Checklists Diários
+            </Link>
           </div>
         </div>
 
