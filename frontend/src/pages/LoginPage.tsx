@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate, type Location } from 'react-router-dom'
 import axios from 'axios'
+import { jwtDecode } from 'jwt-decode'
 import { useAuth } from '../hooks/useAuth'
 import { login as loginRequest } from '../services/authService'
-import type { ErrorResponse } from '../types'
+import type { ErrorResponse, UserRole } from '../types'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -58,8 +59,14 @@ export function LoginPage() {
       const response = await loginRequest({ email: email.trim(), password })
       login(response.token)
 
-      const state = location.state as LocationState | null
-      navigate(state?.from ?? '/', { replace: true })
+      const { role } = jwtDecode<{ role: UserRole }>(response.token)
+      const homePath = role === 'MANAGER' ? '/manager' : '/worker'
+      const from = (location.state as LocationState | null)?.from
+
+      // Only honor the pre-login redirect target if it belongs to this role's
+      // section — otherwise a manager logging out from a manager-only page and
+      // logging back in as a worker (or vice versa) would bounce to /unauthorized.
+      navigate(from && from.pathname.startsWith(homePath) ? from : homePath, { replace: true })
     } catch (error) {
       if (axios.isAxiosError<ErrorResponse>(error) && error.response) {
         setSubmitError(error.response.data.message)
