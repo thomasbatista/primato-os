@@ -34,7 +34,8 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<Page<UserResponse>> findAll(@RequestParam(required = false) UserRole role,
+                                                        @RequestParam(required = false, defaultValue = "false") boolean unlinked,
                                                         @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(userService.findAll(role, pageable));
+        return ResponseEntity.ok(userService.findAll(role, unlinked, pageable));
     }
 }

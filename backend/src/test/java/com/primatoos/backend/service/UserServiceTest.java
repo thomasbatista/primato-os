@@ -85,9 +85,9 @@ class UserServiceTest {
         User user = User.builder()
                 .id(1L).name("Usuario").email("u@primatoos.test").password("hash").role(UserRole.MANAGER).build();
         Pageable pageable = PageRequest.of(0, 10);
-        given(userRepository.findAll(pageable)).willReturn(new PageImpl<>(List.of(user)));
+        given(userRepository.search(null, false, pageable)).willReturn(new PageImpl<>(List.of(user)));
 
-        Page<UserResponse> page = userService.findAll(null, pageable);
+        Page<UserResponse> page = userService.findAll(null, false, pageable);
 
         assertThat(page.getTotalElements()).isEqualTo(1);
         assertThat(page.getContent().get(0).email()).isEqualTo("u@primatoos.test");
@@ -98,12 +98,24 @@ class UserServiceTest {
         User manager = User.builder()
                 .id(2L).name("Gestor").email("g@primatoos.test").password("hash").role(UserRole.MANAGER).build();
         Pageable pageable = PageRequest.of(0, 10);
-        given(userRepository.findByRole(UserRole.MANAGER, pageable)).willReturn(new PageImpl<>(List.of(manager)));
+        given(userRepository.search(UserRole.MANAGER, false, pageable)).willReturn(new PageImpl<>(List.of(manager)));
 
-        Page<UserResponse> page = userService.findAll(UserRole.MANAGER, pageable);
+        Page<UserResponse> page = userService.findAll(UserRole.MANAGER, false, pageable);
 
         assertThat(page.getContent()).hasSize(1);
         assertThat(page.getContent().get(0).role()).isEqualTo(UserRole.MANAGER);
-        verify(userRepository, never()).findAll(pageable);
+    }
+
+    @Test
+    void shouldReturnOnlyUnlinkedWorkers_whenUnlinkedFilterIsTrue() {
+        User unlinkedWorker = User.builder()
+                .id(3L).name("Sem Vinculo").email("sv@primatoos.test").password("hash").role(UserRole.WORKER).build();
+        Pageable pageable = PageRequest.of(0, 10);
+        given(userRepository.search(UserRole.WORKER, true, pageable)).willReturn(new PageImpl<>(List.of(unlinkedWorker)));
+
+        Page<UserResponse> page = userService.findAll(UserRole.WORKER, true, pageable);
+
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).email()).isEqualTo("sv@primatoos.test");
     }
 }

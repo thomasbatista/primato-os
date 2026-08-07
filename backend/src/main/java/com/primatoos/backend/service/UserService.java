@@ -36,8 +36,7 @@ public class UserService {
         return userMapper.toResponse(userRepository.save(user));
     }
 
-    public Page<UserResponse> findAll(UserRole role, Pageable pageable) {
-        Page<User> users = role != null ? userRepository.findByRole(role, pageable) : userRepository.findAll(pageable);
-        return users.map(userMapper::toResponse);
+    public Page<UserResponse> findAll(UserRole role, boolean unlinked, Pageable pageable) {
+        return userRepository.search(role, unlinked, pageable).map(userMapper::toResponse);
     }
 }

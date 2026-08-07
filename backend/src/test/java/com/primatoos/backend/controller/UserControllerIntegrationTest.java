@@ -2,7 +2,9 @@ package com.primatoos.backend.controller;
 
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
+import com.primatoos.backend.model.Worker;
 import com.primatoos.backend.repository.UserRepository;
+import com.primatoos.backend.repository.WorkerRepository;
 import com.primatoos.backend.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -27,6 +31,9 @@ class UserControllerIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private WorkerRepository workerRepository;
 
     @Autowired
     private JwtService jwtService;
@@ -147,5 +154,23 @@ class UserControllerIntegrationTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
+    }
+
+    @Test
+    void shouldReturnOnlyUnlinkedWorkerUsers_whenUnlinkedFilterIsTrue() throws Exception {
+        User manager = seedManager("gestor.unlinked@primatoos.test");
+        User linkedWorkerUser = seedWorker("vinculado@primatoos.test");
+        User unlinkedWorkerUser = seedWorker("sem.vinculo@primatoos.test");
+        workerRepository.save(Worker.builder().name("Colaborador Vinculado").user(linkedWorkerUser).build());
+
+        String token = jwtService.generateToken(manager);
+
+        mockMvc.perform(get("/api/v1/users")
+                        .param("role", "WORKER")
+                        .param("unlinked", "true")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[*].email").value(hasItem(unlinkedWorkerUser.getEmail())))
+                .andExpect(jsonPath("$.content[*].email").value(not(hasItem(linkedWorkerUser.getEmail()))));
     }
 }
