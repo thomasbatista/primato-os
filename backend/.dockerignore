@@ -1,0 +1,25 @@
+# Build output — rebuilt fresh inside the image
+target/
+
+# VCS and environment files — never belong in a build context or image
+.git/
+.gitignore
+.gitattributes
+.env
+.env.example
+
+# IDE and editor state
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Docs not needed at runtime
+CLAUDE.md
+HELP.md
+*.md
+
+# OS cruft
+.DS_Store
+Thumbs.db
