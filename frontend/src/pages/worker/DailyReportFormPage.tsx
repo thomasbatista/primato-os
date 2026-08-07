@@ -78,8 +78,32 @@ const EMPTY_ITEM: ItemFormState = {
 interface UploadingFile {
   id: string
   fileName: string
+  status: 'compressing' | 'uploading'
   progress: number
   error: string | null
+}
+
+// Targets ~200-400KB per photo at 1920px/75% quality — plenty for a phone screen,
+// small enough that uploads don't crawl on a construction site's mobile signal.
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 0.4,
+  maxWidthOrHeight: 1920,
+  initialQuality: 0.75,
+  useWebWorker: true,
+  fileType: 'image/jpeg',
+}
+
+// The library keeps the original filename, so a compressed .png would otherwise
+// upload as image/jpeg content under a .png name — the backend's photo validation
+// derives the expected type from the extension and would reject the mismatch.
+//
+// Dynamically imported so its ~50KB isn't in the bundle for managers or for a
+// worker who never fills out a checklist with photos.
+async function compressPhoto(file: File): Promise<File> {
+  const { default: imageCompression } = await import('browser-image-compression')
+  const compressed = await imageCompression(file, COMPRESSION_OPTIONS)
+  const jpegName = file.name.replace(/\.[^.]+$/, '') + '.jpg'
+  return new File([compressed], jpegName, { type: 'image/jpeg' })
 }
 
 function today(): string {
@@ -332,9 +356,26 @@ export function DailyReportFormPage() {
 
     for (const file of files) {
       const uploadId = `${file.name}-${Date.now()}-${Math.random()}`
-      setUploadingFiles((prev) => [...prev, { id: uploadId, fileName: file.name, progress: 0, error: null }])
-      startUpload(uploadId, file)
+      setUploadingFiles((prev) => [
+        ...prev,
+        { id: uploadId, fileName: file.name, status: 'compressing', progress: 0, error: null },
+      ])
+      processFile(uploadId, file)
     }
+  }
+
+  async function processFile(uploadId: string, file: File) {
+    let fileToUpload = file
+
+    try {
+      fileToUpload = await compressPhoto(file)
+    } catch {
+      // Compression failing shouldn't block the upload — fall back to the original
+      // file and let the backend's own 10MB/type validation catch anything bad.
+    }
+
+    setUploadingFiles((prev) => prev.map((u) => (u.id === uploadId ? { ...u, status: 'uploading' } : u)))
+    startUpload(uploadId, fileToUpload)
   }
 
   async function startUpload(uploadId: string, file: File) {
@@ -703,10 +744,10 @@ export function DailyReportFormPage() {
                     <div className="flex items-center justify-between">
                       <span className="truncate text-gray-500">{upload.fileName}</span>
                       <span className={upload.error ? 'text-red-600' : 'text-gray-500'}>
-                        {upload.error ?? `${upload.progress}%`}
+                        {upload.error ?? (upload.status === 'compressing' ? 'Compactando...' : `${upload.progress}%`)}
                       </span>
                     </div>
-                    {!upload.error && (
+                    {!upload.error && upload.status === 'uploading' && (
                       <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-background">
                         <div className="h-full bg-primary transition-all" style={{ width: `${upload.progress}%` }} />
                       </div>
