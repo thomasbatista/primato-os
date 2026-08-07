@@ -17,6 +17,8 @@ import { DailyReportDetailPage } from '../pages/manager/DailyReportDetailPage'
 import { MaterialRequestListPage } from '../pages/manager/MaterialRequestListPage'
 import { MaterialRequestDetailPage } from '../pages/manager/MaterialRequestDetailPage'
 import { MaterialRequestFormPage } from '../pages/manager/MaterialRequestFormPage'
+import { UserListPage } from '../pages/manager/UserListPage'
+import { UserFormPage } from '../pages/manager/UserFormPage'
 import { WorkerWorkOrderListPage } from '../pages/worker/WorkerWorkOrderListPage'
 import { WorkerWorkOrderDetailPage } from '../pages/worker/WorkerWorkOrderDetailPage'
 import { DailyReportListPage as WorkerDailyReportListPage } from '../pages/worker/DailyReportListPage'
@@ -58,6 +60,8 @@ const router = createBrowserRouter([
           { path: 'material-requests/new/from-work-order/:workOrderId', element: <MaterialRequestFormPage /> },
           { path: 'material-requests/:id', element: <MaterialRequestDetailPage /> },
           { path: 'material-requests/:id/edit', element: <MaterialRequestFormPage /> },
+          { path: 'users', element: <UserListPage /> },
+          { path: 'users/new', element: <UserFormPage /> },
         ],
       },
     ],

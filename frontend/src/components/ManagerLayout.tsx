@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { label: 'Ordens de Serviço', to: '/manager/work-orders' },
   { label: 'Checklists Diários', to: '/manager/daily-reports' },
   { label: 'Pedidos de Materiais', to: '/manager/material-requests' },
+  { label: 'Usuários', to: '/manager/users' },
 ]
 
 export function ManagerLayout() {
