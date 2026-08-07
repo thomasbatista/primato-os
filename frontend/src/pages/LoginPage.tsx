@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useLocation, useNavigate, type Location } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams, type Location } from 'react-router-dom'
 import axios from 'axios'
 import { jwtDecode } from 'jwt-decode'
 import { useAuth } from '../hooks/useAuth'
@@ -21,6 +21,8 @@ export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const sessionExpired = searchParams.get('sessionExpired') === 'true'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -91,13 +93,22 @@ export function LoginPage() {
             onSubmit={handleSubmit}
             className="rounded-lg border border-muted bg-white p-6 shadow-sm sm:p-8"
           >
-            {submitError && (
+            {submitError ? (
               <div
                 role="alert"
                 className="mb-5 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
               >
                 {submitError}
               </div>
+            ) : (
+              sessionExpired && (
+                <div
+                  role="status"
+                  className="mb-5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
+                >
+                  Sua sessão expirou, entre novamente.
+                </div>
+              )
             )}
 
             <div className="mb-4">
