@@ -14,6 +14,9 @@ import { WorkOrderDetailPage } from '../pages/manager/WorkOrderDetailPage'
 import { WorkOrderFormPage } from '../pages/manager/WorkOrderFormPage'
 import { DailyReportListPage as ManagerDailyReportListPage } from '../pages/manager/DailyReportListPage'
 import { DailyReportDetailPage } from '../pages/manager/DailyReportDetailPage'
+import { MaterialRequestListPage } from '../pages/manager/MaterialRequestListPage'
+import { MaterialRequestDetailPage } from '../pages/manager/MaterialRequestDetailPage'
+import { MaterialRequestFormPage } from '../pages/manager/MaterialRequestFormPage'
 import { WorkerWorkOrderListPage } from '../pages/worker/WorkerWorkOrderListPage'
 import { WorkerWorkOrderDetailPage } from '../pages/worker/WorkerWorkOrderDetailPage'
 import { DailyReportListPage as WorkerDailyReportListPage } from '../pages/worker/DailyReportListPage'
@@ -50,6 +53,11 @@ const router = createBrowserRouter([
           { path: 'work-orders/:id/edit', element: <WorkOrderFormPage /> },
           { path: 'daily-reports', element: <ManagerDailyReportListPage /> },
           { path: 'daily-reports/:id', element: <DailyReportDetailPage /> },
+          { path: 'material-requests', element: <MaterialRequestListPage /> },
+          { path: 'material-requests/new', element: <MaterialRequestFormPage /> },
+          { path: 'material-requests/new/from-work-order/:workOrderId', element: <MaterialRequestFormPage /> },
+          { path: 'material-requests/:id', element: <MaterialRequestDetailPage /> },
+          { path: 'material-requests/:id/edit', element: <MaterialRequestFormPage /> },
         ],
       },
     ],

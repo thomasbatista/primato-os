@@ -221,6 +221,12 @@ export function WorkOrderDetailPage() {
             >
               Ver Checklists Diários
             </Link>
+            <Link
+              to={`/manager/material-requests/new/from-work-order/${workOrder.id}`}
+              className={secondaryButtonClass}
+            >
+              Gerar Pedido
+            </Link>
           </div>
         </div>
 
