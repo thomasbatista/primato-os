@@ -11,12 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,6 +39,9 @@ class UserControllerIntegrationTest {
 
     @Autowired
     private JwtService jwtService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private User seedManager(String email) {
         return userRepository.save(User.builder()
@@ -172,5 +177,78 @@ class UserControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[*].email").value(hasItem(unlinkedWorkerUser.getEmail())))
                 .andExpect(jsonPath("$.content[*].email").value(not(hasItem(linkedWorkerUser.getEmail()))));
+    }
+
+    @Test
+    void shouldResetPassword_whenAuthenticatedAsManager() throws Exception {
+        User manager = seedManager("gestor.resetpass@primatoos.test");
+        User targetUser = userRepository.save(User.builder()
+                .name("Colaborador Reset").email("resetpass.target@primatoos.test")
+                .password(passwordEncoder.encode("senhaAntiga1")).role(UserRole.WORKER).build());
+        String token = jwtService.generateToken(manager);
+
+        String body = """
+                {"password": "senhaNova123"}
+                """;
+
+        mockMvc.perform(patch("/api/v1/users/" + targetUser.getId() + "/reset-password")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("resetpass.target@primatoos.test"))
+                .andExpect(jsonPath("$.password").doesNotExist());
+
+        String oldPasswordLoginBody = """
+                {"email": "resetpass.target@primatoos.test", "password": "senhaAntiga1"}
+                """;
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(oldPasswordLoginBody))
+                .andExpect(status().isUnauthorized());
+
+        String newPasswordLoginBody = """
+                {"email": "resetpass.target@primatoos.test", "password": "senhaNova123"}
+                """;
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(newPasswordLoginBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty());
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenResetPasswordIsTooShort() throws Exception {
+        User manager = seedManager("gestor.resetpass.short@primatoos.test");
+        User targetUser = seedWorker("resetpass.short.target@primatoos.test");
+        String token = jwtService.generateToken(manager);
+
+        String body = """
+                {"password": "123"}
+                """;
+
+        mockMvc.perform(patch("/api/v1/users/" + targetUser.getId() + "/reset-password")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnForbidden_whenWorkerResetsPassword() throws Exception {
+        User worker = seedWorker("worker.resetpass@primatoos.test");
+        User targetUser = seedWorker("resetpass.forbidden.target@primatoos.test");
+        String token = jwtService.generateToken(worker);
+
+        String body = """
+                {"password": "senhaNova123"}
+                """;
+
+        mockMvc.perform(patch("/api/v1/users/" + targetUser.getId() + "/reset-password")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
     }
 }

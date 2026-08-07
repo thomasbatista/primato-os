@@ -2,7 +2,9 @@ package com.primatoos.backend.controller;
 
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
+import com.primatoos.backend.model.Worker;
 import com.primatoos.backend.repository.UserRepository;
+import com.primatoos.backend.repository.WorkerRepository;
 import com.primatoos.backend.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,6 +30,9 @@ class WorkerControllerIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private WorkerRepository workerRepository;
 
     @Autowired
     private JwtService jwtService;
@@ -92,5 +98,43 @@ class WorkerControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/workers")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldReactivateWorker_whenAuthenticatedAsManager() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor Reativa")
+                .email("gestor.reactivate@primatoos.test")
+                .password("unused")
+                .role(UserRole.MANAGER)
+                .build());
+        Worker inactiveWorker = workerRepository.save(Worker.builder()
+                .name("Colaborador Inativo").active(false).build());
+
+        String token = jwtService.generateToken(manager);
+
+        mockMvc.perform(patch("/api/v1/workers/" + inactiveWorker.getId() + "/reactivate")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    void shouldReturnForbidden_whenWorkerReactivatesWorker() throws Exception {
+        User worker = userRepository.save(User.builder()
+                .name("Colaborador Reativa")
+                .email("worker.reactivate@primatoos.test")
+                .password("unused")
+                .role(UserRole.WORKER)
+                .build());
+        Worker inactiveWorker = workerRepository.save(Worker.builder()
+                .name("Colaborador Inativo Alvo").active(false).build());
+
+        String token = jwtService.generateToken(worker);
+
+        mockMvc.perform(patch("/api/v1/workers/" + inactiveWorker.getId() + "/reactivate")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
     }
 }

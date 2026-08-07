@@ -1,8 +1,10 @@
 package com.primatoos.backend.service;
 
+import com.primatoos.backend.dto.user.ResetPasswordRequest;
 import com.primatoos.backend.dto.user.UserCreateRequest;
 import com.primatoos.backend.dto.user.UserResponse;
 import com.primatoos.backend.exception.BusinessRuleException;
+import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.UserMapper;
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
@@ -117,5 +119,33 @@ class UserServiceTest {
 
         assertThat(page.getContent()).hasSize(1);
         assertThat(page.getContent().get(0).email()).isEqualTo("sv@primatoos.test");
+    }
+
+    @Test
+    void shouldResetPassword_whenUserExists() {
+        User user = User.builder()
+                .id(4L).name("Usuario").email("reset@primatoos.test").password("old-hash").role(UserRole.WORKER)
+                .build();
+        given(userRepository.findById(4L)).willReturn(Optional.of(user));
+        given(passwordEncoder.encode("novaSenha123")).willReturn("new-hash");
+        given(userRepository.save(any(User.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService.resetPassword(4L, new ResetPasswordRequest("novaSenha123"));
+
+        assertThat(response.email()).isEqualTo("reset@primatoos.test");
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getPassword()).isEqualTo("new-hash");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundException_whenResettingPasswordForNonExistentUser() {
+        given(userRepository.findById(999L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.resetPassword(999L, new ResetPasswordRequest("novaSenha123")))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(userRepository, never()).save(any());
     }
 }

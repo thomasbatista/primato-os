@@ -56,4 +56,9 @@ public class WorkerController {
     public ResponseEntity<WorkerResponse> deactivate(@PathVariable Long id) {
         return ResponseEntity.ok(workerService.deactivate(id));
     }
+
+    @PatchMapping("/{id}/reactivate")
+    public ResponseEntity<WorkerResponse> reactivate(@PathVariable Long id) {
+        return ResponseEntity.ok(workerService.reactivate(id));
+    }
 }

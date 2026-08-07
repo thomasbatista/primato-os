@@ -163,6 +163,26 @@ class WorkerServiceTest {
     }
 
     @Test
+    void shouldReactivateWorker_whenWorkerExists() {
+        Worker worker = Worker.builder().id(301L).name("Marcos").active(false).build();
+
+        given(workerRepository.findById(301L)).willReturn(Optional.of(worker));
+        given(workerRepository.save(any(Worker.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        WorkerResponse response = workerService.reactivate(301L);
+
+        assertThat(response.active()).isTrue();
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundException_whenReactivatingNonExistentWorker() {
+        given(workerRepository.findById(999L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> workerService.reactivate(999L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
     void shouldReturnAllWorkers_whenActiveFilterIsNotProvided() {
         Worker worker = Worker.builder().id(1L).name("Colaborador").active(true).build();
         Pageable pageable = PageRequest.of(0, 10);

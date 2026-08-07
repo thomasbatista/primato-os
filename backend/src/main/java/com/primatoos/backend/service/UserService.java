@@ -1,8 +1,10 @@
 package com.primatoos.backend.service;
 
+import com.primatoos.backend.dto.user.ResetPasswordRequest;
 import com.primatoos.backend.dto.user.UserCreateRequest;
 import com.primatoos.backend.dto.user.UserResponse;
 import com.primatoos.backend.exception.BusinessRuleException;
+import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.UserMapper;
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
@@ -38,5 +40,17 @@ public class UserService {
 
     public Page<UserResponse> findAll(UserRole role, boolean unlinked, Pageable pageable) {
         return userRepository.search(role, unlinked, pageable).map(userMapper::toResponse);
+    }
+
+    public UserResponse resetPassword(Long id, ResetPasswordRequest request) {
+        User user = findUserOrThrow(id);
+        user.setPassword(passwordEncoder.encode(request.password()));
+
+        return userMapper.toResponse(userRepository.save(user));
+    }
+
+    private User findUserOrThrow(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 }

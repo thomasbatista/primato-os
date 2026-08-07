@@ -67,6 +67,13 @@ public class WorkerService {
         return workerMapper.toResponse(workerRepository.save(worker));
     }
 
+    public WorkerResponse reactivate(Long id) {
+        Worker worker = findWorkerOrThrow(id);
+        worker.setActive(true);
+
+        return workerMapper.toResponse(workerRepository.save(worker));
+    }
+
     private Worker findWorkerOrThrow(Long id) {
         return workerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Colaborador não encontrado"));
