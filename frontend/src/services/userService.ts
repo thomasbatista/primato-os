@@ -34,3 +34,8 @@ export async function createUser(request: UserCreateRequest): Promise<UserRespon
   const response = await api.post<UserResponse>('/users', request)
   return response.data
 }
+
+export async function resetUserPassword(id: number, password: string): Promise<UserResponse> {
+  const response = await api.patch<UserResponse>(`/users/${id}/reset-password`, { password })
+  return response.data
+}

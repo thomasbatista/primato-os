@@ -4,7 +4,7 @@ import { primaryButtonClass } from '../../components/buttonStyles'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { Pagination } from '../../components/Pagination'
 import { StatusBadge, type StatusTone } from '../../components/StatusBadge'
-import { deactivateWorker, getWorkers } from '../../services/workerService'
+import { deactivateWorker, getWorkers, reactivateWorker } from '../../services/workerService'
 import type { Page, WorkerResponse } from '../../types'
 
 function activeStatusBadge(active: boolean): { label: string; tone: StatusTone } {
@@ -16,7 +16,8 @@ export function WorkerListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
-  const [deactivatingId, setDeactivatingId] = useState<number | null>(null)
+  const [showInactive, setShowInactive] = useState(false)
+  const [pendingActionId, setPendingActionId] = useState<number | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export function WorkerListPage() {
       setError(null)
 
       try {
-        const data = await getWorkers({ page })
+        const data = await getWorkers({ active: showInactive ? undefined : true, page })
         if (!cancelled) {
           setWorkers(data)
         }
@@ -47,25 +48,50 @@ export function WorkerListPage() {
     return () => {
       cancelled = true
     }
-  }, [page])
+  }, [showInactive, page])
+
+  function handleShowInactiveChange(checked: boolean) {
+    setShowInactive(checked)
+    setPage(0)
+  }
+
+  function replaceWorker(updated: WorkerResponse) {
+    setWorkers((prev) =>
+      prev ? { ...prev, content: prev.content.map((w) => (w.id === updated.id ? updated : w)) } : prev,
+    )
+  }
 
   async function handleDeactivate(worker: WorkerResponse) {
-    if (!window.confirm(`Tem certeza que deseja desativar ${worker.name}? Esta ação não pode ser desfeita.`)) {
+    if (
+      !window.confirm(
+        `Tem certeza que deseja desativar ${worker.name}? Colaboradores inativos não podem ser atribuídos a novas ordens de serviço — isso pode ser revertido reativando o cadastro depois.`,
+      )
+    ) {
       return
     }
 
     setActionError(null)
-    setDeactivatingId(worker.id)
+    setPendingActionId(worker.id)
 
     try {
-      const updated = await deactivateWorker(worker.id)
-      setWorkers((prev) =>
-        prev ? { ...prev, content: prev.content.map((w) => (w.id === updated.id ? updated : w)) } : prev,
-      )
+      replaceWorker(await deactivateWorker(worker.id))
     } catch {
       setActionError('Não foi possível desativar o colaborador. Tente novamente.')
     } finally {
-      setDeactivatingId(null)
+      setPendingActionId(null)
+    }
+  }
+
+  async function handleReactivate(worker: WorkerResponse) {
+    setActionError(null)
+    setPendingActionId(worker.id)
+
+    try {
+      replaceWorker(await reactivateWorker(worker.id))
+    } catch {
+      setActionError('Não foi possível reativar o colaborador. Tente novamente.')
+    } finally {
+      setPendingActionId(null)
     }
   }
 
@@ -77,6 +103,16 @@ export function WorkerListPage() {
           Novo Colaborador
         </Link>
       </div>
+
+      <label className="flex items-center gap-2 text-sm text-foreground">
+        <input
+          type="checkbox"
+          checked={showInactive}
+          onChange={(event) => handleShowInactiveChange(event.target.checked)}
+          className="h-4 w-4 rounded border-muted accent-primary focus:ring-primary"
+        />
+        Mostrar inativos
+      </label>
 
       {actionError && (
         <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
@@ -126,14 +162,23 @@ export function WorkerListPage() {
                           >
                             Editar
                           </Link>
-                          {worker.active && (
+                          {worker.active ? (
                             <button
                               type="button"
-                              disabled={deactivatingId === worker.id}
+                              disabled={pendingActionId === worker.id}
                               onClick={() => handleDeactivate(worker)}
                               className="text-sm font-medium text-red-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              {deactivatingId === worker.id ? 'Desativando...' : 'Desativar'}
+                              {pendingActionId === worker.id ? 'Desativando...' : 'Desativar'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={pendingActionId === worker.id}
+                              onClick={() => handleReactivate(worker)}
+                              className="text-sm font-medium text-accent-dark hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {pendingActionId === worker.id ? 'Reativando...' : 'Reativar'}
                             </button>
                           )}
                         </div>
@@ -166,14 +211,23 @@ export function WorkerListPage() {
                     >
                       Editar
                     </Link>
-                    {worker.active && (
+                    {worker.active ? (
                       <button
                         type="button"
-                        disabled={deactivatingId === worker.id}
+                        disabled={pendingActionId === worker.id}
                         onClick={() => handleDeactivate(worker)}
                         className="text-sm font-medium text-red-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {deactivatingId === worker.id ? 'Desativando...' : 'Desativar'}
+                        {pendingActionId === worker.id ? 'Desativando...' : 'Desativar'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={pendingActionId === worker.id}
+                        onClick={() => handleReactivate(worker)}
+                        className="text-sm font-medium text-accent-dark hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {pendingActionId === worker.id ? 'Reativando...' : 'Reativar'}
                       </button>
                     )}
                   </div>

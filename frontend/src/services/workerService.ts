@@ -38,3 +38,8 @@ export async function deactivateWorker(id: number): Promise<WorkerResponse> {
   const response = await api.patch<WorkerResponse>(`/workers/${id}/deactivate`)
   return response.data
 }
+
+export async function reactivateWorker(id: number): Promise<WorkerResponse> {
+  const response = await api.patch<WorkerResponse>(`/workers/${id}/reactivate`)
+  return response.data
+}
