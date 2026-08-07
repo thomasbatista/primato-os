@@ -25,6 +25,10 @@ RUN mkdir -p /root/.m2 && \
 # and only re-runs when the pom actually changes, not on every source edit.
 COPY mvnw pom.xml ./
 COPY .mvn/ .mvn/
+# Belt and suspenders: the git-tracked mode should already be executable (fixed
+# separately), but this makes the build resilient to whatever mode the file
+# actually lands with in the build context.
+RUN chmod +x mvnw
 RUN ./mvnw -B dependency:go-offline
 
 COPY src/ src/
