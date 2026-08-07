@@ -11,6 +11,7 @@ export async function getManagers(): Promise<UserResponse[]> {
 
 interface GetUsersParams {
   role?: UserRole
+  unlinked?: boolean
   page?: number
   size?: number
 }
@@ -18,6 +19,15 @@ interface GetUsersParams {
 export async function getUsers(params: GetUsersParams = {}): Promise<Page<UserResponse>> {
   const response = await api.get<Page<UserResponse>>('/users', { params })
   return response.data
+}
+
+// Same bounded-single-page reasoning as getManagers() — backs the "link to a login"
+// picker in the Worker form, not a list screen.
+export async function getUnlinkedWorkerUsers(): Promise<UserResponse[]> {
+  const response = await api.get<Page<UserResponse>>('/users', {
+    params: { role: 'WORKER', unlinked: true, size: 100 },
+  })
+  return response.data.content
 }
 
 export async function createUser(request: UserCreateRequest): Promise<UserResponse> {
