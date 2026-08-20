@@ -1,14 +1,20 @@
 import { useState } from 'react'
-import type { DailyReportPhotoResponse } from '../types'
+
+// Structural, not tied to DailyReportPhotoResponse — project and work order photos share
+// this shape and reuse this grid.
+interface Photo {
+  id: number
+  url: string
+}
 
 interface PhotoGridProps {
-  photos: DailyReportPhotoResponse[]
-  onDelete?: (photo: DailyReportPhotoResponse) => void
+  photos: Photo[]
+  onDelete?: (photo: Photo) => void
   deletingPhotoId?: number | null
 }
 
 export function PhotoGrid({ photos, onDelete, deletingPhotoId }: PhotoGridProps) {
-  const [expandedPhoto, setExpandedPhoto] = useState<DailyReportPhotoResponse | null>(null)
+  const [expandedPhoto, setExpandedPhoto] = useState<Photo | null>(null)
 
   if (photos.length === 0) {
     return <p className="text-sm text-gray-500">Nenhuma foto anexada.</p>
@@ -24,7 +30,7 @@ export function PhotoGrid({ photos, onDelete, deletingPhotoId }: PhotoGridProps)
               onClick={() => setExpandedPhoto(photo)}
               className="h-full w-full focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <img src={photo.url} alt="Foto do checklist diário" className="h-full w-full object-cover" />
+              <img src={photo.url} alt="Foto" className="h-full w-full object-cover" />
             </button>
             {onDelete && (
               <button
@@ -50,7 +56,7 @@ export function PhotoGrid({ photos, onDelete, deletingPhotoId }: PhotoGridProps)
         >
           <img
             src={expandedPhoto.url}
-            alt="Foto do checklist diário em tamanho ampliado"
+            alt="Foto em tamanho ampliado"
             className="max-h-full max-w-full rounded-md object-contain"
           />
           <button

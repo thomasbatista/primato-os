@@ -25,6 +25,7 @@ import { WorkerWorkOrderListPage } from '../pages/worker/WorkerWorkOrderListPage
 import { WorkerWorkOrderDetailPage } from '../pages/worker/WorkerWorkOrderDetailPage'
 import { DailyReportListPage as WorkerDailyReportListPage } from '../pages/worker/DailyReportListPage'
 import { DailyReportFormPage } from '../pages/worker/DailyReportFormPage'
+import { WorkerProjectDetailPage } from '../pages/worker/WorkerProjectDetailPage'
 
 function RootRedirect() {
   const { user, isAuthenticated } = useAuth()
@@ -57,6 +58,8 @@ const router = createBrowserRouter([
           { path: 'work-orders/:id/edit', element: <WorkOrderFormPage /> },
           { path: 'daily-reports', element: <ManagerDailyReportListPage /> },
           { path: 'daily-reports/:id', element: <DailyReportDetailPage /> },
+          { path: 'daily-reports/new/:workOrderId', element: <DailyReportFormPage /> },
+          { path: 'daily-reports/:id/edit', element: <DailyReportFormPage /> },
           { path: 'material-requests', element: <MaterialRequestListPage /> },
           { path: 'material-requests/new', element: <MaterialRequestFormPage /> },
           { path: 'material-requests/new/from-work-order/:workOrderId', element: <MaterialRequestFormPage /> },
@@ -80,6 +83,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <WorkerWorkOrderListPage /> },
           { path: 'work-orders/:id', element: <WorkerWorkOrderDetailPage /> },
+          { path: 'projects/:id', element: <WorkerProjectDetailPage /> },
           { path: 'daily-reports', element: <WorkerDailyReportListPage /> },
           { path: 'daily-reports/new/:workOrderId', element: <DailyReportFormPage /> },
           { path: 'daily-reports/:id/edit', element: <DailyReportFormPage /> },

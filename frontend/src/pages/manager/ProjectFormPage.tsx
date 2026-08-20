@@ -3,7 +3,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { FormField } from '../../components/FormField'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
-import { createProject, getProject, updateProject } from '../../services/projectService'
+import { PhotoSection } from '../../components/PhotoSection'
+import {
+  createProject,
+  deleteProjectPhoto,
+  getProject,
+  getProjectPhotos,
+  updateProject,
+  uploadProjectPhoto,
+} from '../../services/projectService'
 import { getManagers } from '../../services/userService'
 import type { ErrorResponse, ProjectStatus, UserResponse } from '../../types'
 import { PROJECT_STATUS_OPTIONS } from './projectStatusOptions'
@@ -336,6 +344,18 @@ export function ProjectFormPage() {
           </Link>
         </div>
       </form>
+
+      {/* Photos attach to a saved obra, so this only appears once it has an id. */}
+      {isEditMode && (
+        <div className="rounded-lg border border-muted bg-white p-6 shadow-sm">
+          <PhotoSection
+            label="Fotos da obra"
+            load={() => getProjectPhotos(Number(id))}
+            upload={(file) => uploadProjectPhoto(Number(id), file)}
+            remove={(photo) => deleteProjectPhoto(Number(id), photo.id)}
+          />
+        </div>
+      )}
     </div>
   )
 }

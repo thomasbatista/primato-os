@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { fillerName, isFilledByManager } from '../../components/dailyReportFiller'
 import { DAILY_REPORT_STATUS_TONE, dailyReportStatusLabel } from '../../components/dailyReportStatusOptions'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { Pagination } from '../../components/Pagination'
@@ -124,7 +125,12 @@ export function DailyReportListPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-gray-500">OS Nº {report.workOrder.orderNumber}</td>
-                    <td className="px-4 py-3 text-gray-500">{report.filledByWorker.name}</td>
+                    <td className="px-4 py-3 text-gray-500">
+                      <span className="inline-flex items-center gap-2">
+                        {fillerName(report)}
+                        {isFilledByManager(report) && <StatusBadge label="Gestor" tone="info" />}
+                      </span>
+                    </td>
                     <td className="px-4 py-3">
                       <StatusBadge label={dailyReportStatusLabel(report.status)} tone={DAILY_REPORT_STATUS_TONE[report.status]} />
                     </td>
@@ -146,7 +152,10 @@ export function DailyReportListPage() {
                     <StatusBadge label={dailyReportStatusLabel(report.status)} tone={DAILY_REPORT_STATUS_TONE[report.status]} />
                   </div>
                   <p className="mt-1 text-sm text-gray-500">OS Nº {report.workOrder.orderNumber}</p>
-                  <p className="mt-2 text-xs text-gray-500">{report.filledByWorker.name}</p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {fillerName(report)}
+                    {isFilledByManager(report) && ' (Gestor)'}
+                  </p>
                 </Link>
               </li>
             ))}

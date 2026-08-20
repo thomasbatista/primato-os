@@ -9,6 +9,7 @@ import {
   dailyReportStatusLabel,
 } from '../../components/dailyReportStatusOptions'
 import { DetailField } from '../../components/DetailField'
+import { fillerName, isFilledByManager } from '../../components/dailyReportFiller'
 import { formatDate, formatTime } from '../../components/formatters'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { PhotoGrid } from '../../components/PhotoGrid'
@@ -101,10 +102,14 @@ export function DailyReportDetailPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-muted pb-4">
           <StatusBadge label={dailyReportStatusLabel(report.status)} tone={DAILY_REPORT_STATUS_TONE[report.status]} />
 
-          {report.status === 'FINALIZED' && (
+          {report.status === 'FINALIZED' ? (
             <button type="button" disabled={isReopening} onClick={handleReopen} className={primaryButtonClass}>
               {isReopening ? 'Reabrindo...' : 'Reabrir'}
             </button>
+          ) : (
+            <Link to={`/manager/daily-reports/${report.id}/edit`} className={primaryButtonClass}>
+              Editar
+            </Link>
           )}
         </div>
 
@@ -120,7 +125,12 @@ export function DailyReportDetailPage() {
               OS Nº {report.workOrder.orderNumber} — {report.workOrder.stage}
             </Link>
           </DetailField>
-          <DetailField label="Preenchido por">{report.filledByWorker.name}</DetailField>
+          <DetailField label="Preenchido por">
+            <span className="inline-flex items-center gap-2">
+              {fillerName(report)}
+              {isFilledByManager(report) && <StatusBadge label="Gestor" tone="info" />}
+            </span>
+          </DetailField>
           <DetailField label="Horário">
             {report.startTime || report.endTime
               ? `${formatTime(report.startTime) ?? '?'} às ${formatTime(report.endTime) ?? '?'}`

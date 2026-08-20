@@ -1,5 +1,12 @@
 import api from './api'
-import type { Page, WorkOrderCreateRequest, WorkOrderResponse, WorkOrderStatus, WorkOrderUpdateRequest } from '../types'
+import type {
+  Page,
+  WorkOrderCreateRequest,
+  WorkOrderPhotoResponse,
+  WorkOrderResponse,
+  WorkOrderStatus,
+  WorkOrderUpdateRequest,
+} from '../types'
 
 interface GetWorkOrdersParams {
   projectId?: number
@@ -79,4 +86,23 @@ export async function downloadWorkOrderPdf(id: number, orderNumber: number): Pro
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+export async function getWorkOrderPhotos(id: number): Promise<WorkOrderPhotoResponse[]> {
+  const response = await api.get<WorkOrderPhotoResponse[]>(`/work-orders/${id}/photos`)
+  return response.data
+}
+
+export async function uploadWorkOrderPhoto(id: number, file: File): Promise<WorkOrderPhotoResponse> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post<WorkOrderPhotoResponse>(`/work-orders/${id}/photos`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return response.data
+}
+
+export async function deleteWorkOrderPhoto(id: number, photoId: number): Promise<void> {
+  await api.delete(`/work-orders/${id}/photos/${photoId}`)
 }

@@ -7,6 +7,7 @@ import {
   itemRequiresDetails,
 } from '../../components/dailyReportStatusOptions'
 import { FormField } from '../../components/FormField'
+import { useAuth } from '../../hooks/useAuth'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { PhotoGrid } from '../../components/PhotoGrid'
 import {
@@ -17,11 +18,10 @@ import {
   updateDailyReport,
   uploadDailyReportPhoto,
 } from '../../services/dailyReportService'
-import { getMyWorkOrder } from '../../services/workOrderService'
+import { getMyWorkOrder, getWorkOrder } from '../../services/workOrderService'
 import type {
   DailyReportCreateRequest,
   DailyReportItemStatus,
-  DailyReportPhotoResponse,
   DailyReportResponse,
   ErrorResponse,
   WorkerSummaryResponse,
@@ -113,6 +113,12 @@ function today(): string {
 export function DailyReportFormPage() {
   const params = useParams<{ workOrderId?: string; id?: string }>()
   const isEditMode = params.id !== undefined
+  const { user } = useAuth()
+  // The same form serves both roles: a manager fills reports for any OS, a worker only for
+  // their own, so each reads the work order through the endpoint their role is allowed.
+  const isManager = user?.role === 'MANAGER'
+  const loadWorkOrder = isManager ? getWorkOrder : getMyWorkOrder
+  const sectionRoot = isManager ? '/manager' : '/worker'
   const navigate = useNavigate()
 
   const [form, setForm] = useState<FormState>({
@@ -155,7 +161,7 @@ export function DailyReportFormPage() {
     try {
       if (isEditMode) {
         const reportData = await getDailyReport(Number(params.id))
-        const workOrderData = await getMyWorkOrder(reportData.workOrder.id)
+        const workOrderData = await loadWorkOrder(reportData.workOrder.id)
         setReport(reportData)
         setWorkOrder(workOrderData)
         setForm({
@@ -183,7 +189,7 @@ export function DailyReportFormPage() {
               : [EMPTY_ITEM],
         })
       } else {
-        const workOrderData = await getMyWorkOrder(Number(params.workOrderId))
+        const workOrderData = await loadWorkOrder(Number(params.workOrderId))
         setWorkOrder(workOrderData)
       }
     } catch {
@@ -314,7 +320,7 @@ export function DailyReportFormPage() {
           ...buildPayload(),
         }
         const created = await createDailyReport(createRequest)
-        navigate(`/worker/daily-reports/${created.id}/edit`, { replace: true })
+        navigate(`${sectionRoot}/daily-reports/${created.id}/edit`, { replace: true })
       }
     } catch (error) {
       setSubmitError(extractErrorMessage(error, 'Não foi possível salvar o checklist. Tente novamente.'))
@@ -395,7 +401,7 @@ export function DailyReportFormPage() {
     }
   }
 
-  async function handleDeletePhoto(photo: DailyReportPhotoResponse) {
+  async function handleDeletePhoto(photo: { id: number }) {
     if (!report) {
       return
     }
@@ -428,7 +434,7 @@ export function DailyReportFormPage() {
   }
 
   const teamPool: WorkerSummaryResponse[] = workOrder.assignedWorkers
-  const backLink = isEditMode ? `/worker/work-orders/${workOrder.id}` : `/worker/work-orders/${workOrder.id}`
+  const backLink = `${sectionRoot}/work-orders/${workOrder.id}`
 
   return (
     <div className="space-y-6">

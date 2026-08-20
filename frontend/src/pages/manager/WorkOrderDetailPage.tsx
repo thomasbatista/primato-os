@@ -5,15 +5,19 @@ import { dangerButtonClass, primaryButtonClass, secondaryButtonClass } from '../
 import { DetailField } from '../../components/DetailField'
 import { formatDate, formatTime } from '../../components/formatters'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
+import { PhotoSection } from '../../components/PhotoSection'
 import { StatusBadge } from '../../components/StatusBadge'
 import {
   cancelWorkOrder,
   completeWorkOrder,
+  deleteWorkOrderPhoto,
   downloadWorkOrderPdf,
   duplicateWorkOrder,
   getWorkOrder,
+  getWorkOrderPhotos,
   releaseWorkOrder,
   startWorkOrder,
+  uploadWorkOrderPhoto,
 } from '../../services/workOrderService'
 import type { ErrorResponse, WorkOrderResponse } from '../../types'
 import { WORK_ORDER_STATUS_TONE, workOrderStatusLabel } from './workOrderStatusOptions'
@@ -129,6 +133,7 @@ export function WorkOrderDetailPage() {
   }
 
   const isEditable = workOrder.status === 'DRAFT'
+  const canFillReport = workOrder.status === 'RELEASED' || workOrder.status === 'IN_PROGRESS'
 
   return (
     <div className="space-y-6">
@@ -227,6 +232,20 @@ export function WorkOrderDetailPage() {
             >
               Gerar Pedido
             </Link>
+            {canFillReport ? (
+              <Link to={`/manager/daily-reports/new/${workOrder.id}`} className={secondaryButtonClass}>
+                Preencher RDO
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                title="Só é possível preencher o Checklist Diário de uma OS liberada ou em andamento"
+                className={secondaryButtonClass}
+              >
+                Preencher RDO
+              </button>
+            )}
           </div>
         </div>
 
@@ -276,6 +295,15 @@ export function WorkOrderDetailPage() {
               ))}
             </ul>
           )}
+        </div>
+
+        <div className="mt-6 border-t border-muted pt-4">
+          <PhotoSection
+            label="Fotos da OS"
+            load={() => getWorkOrderPhotos(workOrder.id)}
+            upload={(file) => uploadWorkOrderPhoto(workOrder.id, file)}
+            remove={(photo) => deleteWorkOrderPhoto(workOrder.id, photo.id)}
+          />
         </div>
       </div>
     </div>

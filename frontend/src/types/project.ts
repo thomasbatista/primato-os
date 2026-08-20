@@ -44,3 +44,9 @@ export interface ProjectUpdateRequest {
   notes?: string | null
   status: ProjectStatus
 }
+
+export interface ProjectPhotoResponse {
+  id: number
+  url: string
+  createdAt: string
+}

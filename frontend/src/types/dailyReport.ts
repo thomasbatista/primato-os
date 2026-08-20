@@ -1,3 +1,4 @@
+import type { UserSummaryResponse } from './common'
 import type { WorkerSummaryResponse } from './worker'
 import type { WorkOrderSummaryResponse } from './workOrder'
 
@@ -36,7 +37,9 @@ export interface DailyReportResponse {
   id: number
   workOrder: WorkOrderSummaryResponse
   date: string
-  filledByWorker: WorkerSummaryResponse
+  // Exactly one of these is non-null: the worker who filled it, or the manager who did.
+  filledByWorker: WorkerSummaryResponse | null
+  filledByUser: UserSummaryResponse | null
   teamPresent: WorkerSummaryResponse[]
   startTime: string | null
   endTime: string | null
@@ -58,7 +61,9 @@ export interface DailyReportSummaryResponse {
   id: number
   workOrder: WorkOrderSummaryResponse
   date: string
-  filledByWorker: WorkerSummaryResponse
+  // Exactly one of these is non-null: the worker who filled it, or the manager who did.
+  filledByWorker: WorkerSummaryResponse | null
+  filledByUser: UserSummaryResponse | null
   status: DailyReportStatus
 }
 

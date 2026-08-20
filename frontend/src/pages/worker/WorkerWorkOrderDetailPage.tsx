@@ -8,9 +8,10 @@ import {
 import { DetailField } from '../../components/DetailField'
 import { formatDate, formatTime } from '../../components/formatters'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
+import { PhotoSection } from '../../components/PhotoSection'
 import { StatusBadge } from '../../components/StatusBadge'
 import { getMyDailyReports } from '../../services/dailyReportService'
-import { getMyWorkOrder } from '../../services/workOrderService'
+import { getMyWorkOrder, getWorkOrderPhotos } from '../../services/workOrderService'
 import type { DailyReportResponse, WorkOrderResponse } from '../../types'
 import { WORK_ORDER_STATUS_TONE, workOrderStatusLabel } from '../manager/workOrderStatusOptions'
 
@@ -94,7 +95,11 @@ export function WorkerWorkOrderDetailPage() {
         </div>
 
         <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-          <DetailField label="Obra">{workOrder.project.name}</DetailField>
+          <DetailField label="Obra">
+            <Link to={`/worker/projects/${workOrder.project.id}`} className="text-accent-dark hover:underline">
+              {workOrder.project.name}
+            </Link>
+          </DetailField>
           <DetailField label="Data">{formatDate(workOrder.date)}</DetailField>
           <DetailField label="Etapa">{workOrder.stage}</DetailField>
           <DetailField label="Local">{workOrder.location}</DetailField>
@@ -113,6 +118,10 @@ export function WorkerWorkOrderDetailPage() {
           <DetailField label="Diretrizes de segurança">{workOrder.safetyGuidelines}</DetailField>
           <DetailField label="Critérios de qualidade">{workOrder.qualityCriteria}</DetailField>
         </dl>
+
+        <div className="mt-6 border-t border-muted pt-4">
+          <PhotoSection label="Fotos da OS" load={() => getWorkOrderPhotos(workOrder.id)} />
+        </div>
       </div>
 
       <div>

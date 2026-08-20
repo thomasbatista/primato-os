@@ -67,3 +67,9 @@ export interface WorkOrderUpdateRequest {
   notes?: string | null
   assignedWorkerIds?: number[]
 }
+
+export interface WorkOrderPhotoResponse {
+  id: number
+  url: string
+  createdAt: string
+}

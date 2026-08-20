@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { fillerName } from '../../components/dailyReportFiller'
 import { DashboardSectionCard, type DashboardCardItem } from '../../components/DashboardSectionCard'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { getDashboard } from '../../services/dashboardService'
@@ -50,7 +51,7 @@ export function ManagerDashboardPage() {
     id: report.id,
     href: `/manager/daily-reports/${report.id}`,
     label: `OS Nº ${report.workOrder.orderNumber} — ${formatDate(report.date)}`,
-    sublabel: report.filledByWorker.name,
+    sublabel: fillerName(report),
   }))
 
   const workOrderItems: DashboardCardItem[] = dashboard.todayWorkOrders.items.map((workOrder) => ({
