@@ -8,3 +8,5 @@ CLAUDE.local.md
 .claude/
 backend/CLAUDE.md
 frontend/CLAUDE.md
+# Dumps de produção (contêm hashes de senha) — nunca versionar
+backups/
