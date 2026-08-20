@@ -81,8 +81,9 @@ class DailyReportServiceTest {
         WorkerMapper workerMapper = new WorkerMapper(userMapper);
         WorkOrderMapper workOrderMapper = new WorkOrderMapper(userMapper, workerMapper, new ProjectMapper(userMapper));
         dailyReportService = new DailyReportService(dailyReportRepository, dailyReportPhotoRepository,
-                workOrderRepository, userRepository, workerRepository,
-                new DailyReportMapper(workerMapper, workOrderMapper), storageService);
+                workOrderRepository, workerRepository,
+                new DailyReportMapper(workerMapper, workOrderMapper, userMapper), storageService,
+                new PhotoUploadSupport(), new CallerResolver(userRepository, workerRepository));
     }
 
     private User aWorkerUser(Long id, String email) {

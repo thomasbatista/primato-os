@@ -141,10 +141,11 @@ class DailyReportControllerIntegrationTest {
     }
 
     @Test
-    void shouldReturnForbidden_whenManagerTriesToCreateDailyReport() throws Exception {
+    void shouldCreateDailyReport_whenManagerFillsItForAnUnassignedWorkOrder() throws Exception {
         User manager = userRepository.save(User.builder()
                 .name("Gestor Cria").email("gestor.cria@primatoos.test").password("unused").role(UserRole.MANAGER)
                 .build());
+        // no assigned workers at all — a manager needs no assignment to fill the report
         WorkOrder workOrder = createReportableWorkOrder(manager);
 
         String token = jwtService.generateToken(manager);
@@ -157,7 +158,43 @@ class DailyReportControllerIntegrationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.filledByUser.id").value(manager.getId()))
+                .andExpect(jsonPath("$.filledByWorker").doesNotExist());
+    }
+
+    @Test
+    void shouldAllowManagerToEditAndFinalize_aReportFilledByAWorker() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor Edita").email("gestor.edita@primatoos.test").password("unused")
+                .role(UserRole.MANAGER).build());
+        User workerUser = userRepository.save(User.builder()
+                .name("Colaborador Edita").email("worker.edita@primatoos.test").password("unused")
+                .role(UserRole.WORKER).build());
+        Worker worker = workerRepository.save(Worker.builder().name("Colaborador Edita").user(workerUser).build());
+        WorkOrder workOrder = createReportableWorkOrder(manager, worker);
+
+        String workerToken = jwtService.generateToken(workerUser);
+        String managerToken = jwtService.generateToken(manager);
+        Long reportId = createDraftReport(workerToken, workOrder.getId());
+
+        mockMvc.perform(put("/api/v1/daily-reports/" + reportId)
+                        .header("Authorization", "Bearer " + managerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"date": "2026-08-03"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.date").value("2026-08-03"))
+                // editing someone else's report does not reassign authorship
+                .andExpect(jsonPath("$.filledByWorker.id").value(worker.getId()))
+                .andExpect(jsonPath("$.filledByUser").doesNotExist());
+
+        mockMvc.perform(patch("/api/v1/daily-reports/" + reportId + "/finalize")
+                        .header("Authorization", "Bearer " + managerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINALIZED"));
     }
 
     @Test
@@ -335,30 +372,32 @@ class DailyReportControllerIntegrationTest {
     }
 
     @Test
-    void shouldReturnForbidden_whenManagerUploadsPhoto() throws Exception {
+    void shouldUploadPhoto_whenAuthenticatedAsManager() throws Exception {
         User manager = userRepository.save(User.builder()
-                .name("Gestor Foto Forbidden").email("gestor.foto.forbidden@primatoos.test").password("unused")
+                .name("Gestor Foto Upload").email("gestor.foto.upload@primatoos.test").password("unused")
                 .role(UserRole.MANAGER).build());
         User workerUser = userRepository.save(User.builder()
-                .name("Colaborador Foto Forbidden").email("worker.foto.forbidden@primatoos.test").password("unused")
+                .name("Colaborador Foto Upload").email("worker.foto.upload@primatoos.test").password("unused")
                 .role(UserRole.WORKER).build());
         Worker worker = workerRepository.save(
-                Worker.builder().name("Colaborador Foto Forbidden").user(workerUser).build());
+                Worker.builder().name("Colaborador Foto Upload").user(workerUser).build());
         WorkOrder workOrder = createReportableWorkOrder(manager, worker);
 
         String workerToken = jwtService.generateToken(workerUser);
         Long reportId = createDraftReport(workerToken, workOrder.getId());
 
         String managerToken = jwtService.generateToken(manager);
+        given(storageService.upload(any(), any(), eq("image/jpeg")))
+                .willReturn("https://cdn.primatoos.test/daily-reports/" + reportId + "/manager.jpg");
+
         MockMultipartFile file = new MockMultipartFile("file", "foto.jpg", "image/jpeg", "conteudo".getBytes());
 
         mockMvc.perform(multipart("/api/v1/daily-reports/" + reportId + "/photos")
                         .file(file)
                         .header("Authorization", "Bearer " + managerToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403));
-
-        verify(storageService, never()).upload(any(), any(), any());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.url").value(
+                        "https://cdn.primatoos.test/daily-reports/" + reportId + "/manager.jpg"));
     }
 
     @Test

@@ -19,6 +19,7 @@ public class DailyReportMapper {
 
     private final WorkerMapper workerMapper;
     private final WorkOrderMapper workOrderMapper;
+    private final UserMapper userMapper;
 
     public DailyReportResponse toResponse(DailyReport dailyReport) {
         return new DailyReportResponse(
@@ -26,6 +27,7 @@ public class DailyReportMapper {
                 workOrderMapper.toSummary(dailyReport.getWorkOrder()),
                 dailyReport.getDate(),
                 workerMapper.toSummary(dailyReport.getFilledByWorker()),
+                userMapper.toSummary(dailyReport.getFilledByUser()),
                 dailyReport.getTeamPresent().stream()
                         .map(workerMapper::toSummary)
                         .sorted(Comparator.comparing(WorkerSummaryResponse::name))
@@ -53,6 +55,7 @@ public class DailyReportMapper {
                 workOrderMapper.toSummary(dailyReport.getWorkOrder()),
                 dailyReport.getDate(),
                 workerMapper.toSummary(dailyReport.getFilledByWorker()),
+                userMapper.toSummary(dailyReport.getFilledByUser()),
                 dailyReport.getStatus()
         );
     }

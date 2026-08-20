@@ -34,7 +34,7 @@ public class DailyReportController {
     private final DailyReportService dailyReportService;
 
     @PostMapping
-    @PreAuthorize("hasRole('WORKER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'WORKER')")
     public ResponseEntity<DailyReportResponse> create(Authentication authentication,
                                                         @Valid @RequestBody DailyReportCreateRequest request) {
         DailyReportResponse response = dailyReportService.create(authentication.getName(), request);
@@ -58,14 +58,14 @@ public class DailyReportController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('WORKER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'WORKER')")
     public ResponseEntity<DailyReportResponse> update(Authentication authentication, @PathVariable Long id,
                                                         @Valid @RequestBody DailyReportUpdateRequest request) {
         return ResponseEntity.ok(dailyReportService.update(id, authentication.getName(), request));
     }
 
     @PatchMapping("/{id}/finalize")
-    @PreAuthorize("hasRole('WORKER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'WORKER')")
     public ResponseEntity<DailyReportResponse> finalizeReport(Authentication authentication, @PathVariable Long id) {
         return ResponseEntity.ok(dailyReportService.finalizeReport(id, authentication.getName()));
     }
@@ -77,7 +77,7 @@ public class DailyReportController {
     }
 
     @PostMapping("/{id}/photos")
-    @PreAuthorize("hasRole('WORKER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'WORKER')")
     public ResponseEntity<DailyReportPhotoResponse> uploadPhoto(Authentication authentication, @PathVariable Long id,
                                                                   @RequestParam("file") MultipartFile file) {
         DailyReportPhotoResponse response = dailyReportService.uploadPhoto(id, authentication.getName(), file);
@@ -85,7 +85,7 @@ public class DailyReportController {
     }
 
     @DeleteMapping("/{id}/photos/{photoId}")
-    @PreAuthorize("hasRole('WORKER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'WORKER')")
     public ResponseEntity<Void> deletePhoto(Authentication authentication, @PathVariable Long id,
                                              @PathVariable Long photoId) {
         dailyReportService.deletePhoto(id, photoId, authentication.getName());

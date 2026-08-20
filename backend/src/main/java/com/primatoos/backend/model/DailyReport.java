@@ -52,9 +52,16 @@ public class DailyReport {
     @Column(nullable = false)
     private LocalDate date;
 
+    // Exactly one of these is set — a report is filled either by a worker (the usual case) or
+    // directly by a manager visiting the site. Enforced in the DB by
+    // chk_daily_reports_filled_by_exactly_one.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "filled_by_worker_id", nullable = false)
+    @JoinColumn(name = "filled_by_worker_id")
     private Worker filledByWorker;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "filled_by_user_id")
+    private User filledByUser;
 
     @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)

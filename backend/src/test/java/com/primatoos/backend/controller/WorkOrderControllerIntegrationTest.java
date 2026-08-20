@@ -12,11 +12,14 @@ import com.primatoos.backend.repository.UserRepository;
 import com.primatoos.backend.repository.WorkOrderRepository;
 import com.primatoos.backend.repository.WorkerRepository;
 import com.primatoos.backend.security.JwtService;
+import com.primatoos.backend.service.StorageService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +28,13 @@ import java.time.LocalDate;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -53,6 +62,26 @@ class WorkOrderControllerIntegrationTest {
 
     @Autowired
     private JwtService jwtService;
+
+    @MockitoBean
+    private StorageService storageService;
+
+    private WorkOrder seedWorkOrder(User manager, String projectName, Worker... assignedWorkers) {
+        Project project = projectRepository.save(Project.builder()
+                .name(projectName).client("Cliente Foto OS").responsibleUser(manager)
+                .status(ProjectStatus.PLANNING).build());
+
+        return workOrderRepository.save(WorkOrder.builder()
+                .orderNumber(workOrderRepository.nextOrderNumber())
+                .project(project)
+                .date(LocalDate.of(2026, 8, 1))
+                .responsibleUser(manager)
+                .stage("Fundação")
+                .description("Concretar fundação")
+                .status(WorkOrderStatus.IN_PROGRESS)
+                .assignedWorkers(Set.of(assignedWorkers))
+                .build());
+    }
 
     @Test
     void shouldCreateWorkOrder_whenAuthenticatedAsManager() throws Exception {
@@ -278,6 +307,93 @@ class WorkOrderControllerIntegrationTest {
 
         mockMvc.perform(get("/api/v1/work-orders/" + workOrder.getId() + "/pdf")
                         .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    void shouldUploadWorkOrderPhoto_whenAuthenticatedAsManager() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor Foto OS").email("gestor.foto.os@primatoos.test").password("unused")
+                .role(UserRole.MANAGER).build());
+        WorkOrder workOrder = seedWorkOrder(manager, "Obra Foto OS");
+
+        given(storageService.upload(any(), any(), eq("image/jpeg")))
+                .willReturn("https://cdn.primatoos.test/work-orders/" + workOrder.getId() + "/croqui.jpg");
+
+        MockMultipartFile file = new MockMultipartFile("file", "croqui.jpg", "image/jpeg", "conteudo".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/work-orders/" + workOrder.getId() + "/photos")
+                        .file(file)
+                        .header("Authorization", "Bearer " + jwtService.generateToken(manager)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.url").value(
+                        "https://cdn.primatoos.test/work-orders/" + workOrder.getId() + "/croqui.jpg"));
+    }
+
+    @Test
+    void shouldReturnForbidden_whenWorkerUploadsWorkOrderPhoto() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor Foto OS Forb").email("gestor.foto.os.forb@primatoos.test").password("unused")
+                .role(UserRole.MANAGER).build());
+        User workerUser = userRepository.save(User.builder()
+                .name("Colaborador Foto OS").email("worker.foto.os@primatoos.test").password("unused")
+                .role(UserRole.WORKER).build());
+        Worker worker = workerRepository.save(Worker.builder().name("Colaborador Foto OS").user(workerUser).build());
+        // assigned, and still read-only on work order photos
+        WorkOrder workOrder = seedWorkOrder(manager, "Obra Foto OS Forb", worker);
+
+        MockMultipartFile file = new MockMultipartFile("file", "croqui.jpg", "image/jpeg", "conteudo".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/work-orders/" + workOrder.getId() + "/photos")
+                        .file(file)
+                        .header("Authorization", "Bearer " + jwtService.generateToken(workerUser)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+
+        verify(storageService, never()).upload(any(), any(), any());
+    }
+
+    @Test
+    void shouldListWorkOrderPhotos_whenWorkerIsAssigned() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor Lista Foto OS").email("gestor.lista.foto.os@primatoos.test").password("unused")
+                .role(UserRole.MANAGER).build());
+        User workerUser = userRepository.save(User.builder()
+                .name("Colaborador Lista Foto OS").email("worker.lista.foto.os@primatoos.test").password("unused")
+                .role(UserRole.WORKER).build());
+        Worker worker = workerRepository.save(
+                Worker.builder().name("Colaborador Lista Foto OS").user(workerUser).build());
+        WorkOrder workOrder = seedWorkOrder(manager, "Obra Lista Foto OS", worker);
+
+        given(storageService.upload(any(), any(), eq("image/jpeg")))
+                .willReturn("https://cdn.primatoos.test/work-orders/" + workOrder.getId() + "/croqui.jpg");
+        mockMvc.perform(multipart("/api/v1/work-orders/" + workOrder.getId() + "/photos")
+                        .file(new MockMultipartFile("file", "croqui.jpg", "image/jpeg", "conteudo".getBytes()))
+                        .header("Authorization", "Bearer " + jwtService.generateToken(manager)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/work-orders/" + workOrder.getId() + "/photos")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(workerUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].url").value(
+                        "https://cdn.primatoos.test/work-orders/" + workOrder.getId() + "/croqui.jpg"));
+    }
+
+    @Test
+    void shouldReturnForbidden_whenUnassignedWorkerListsWorkOrderPhotos() throws Exception {
+        User manager = userRepository.save(User.builder()
+                .name("Gestor Foto OS Outsider").email("gestor.foto.os.outsider@primatoos.test").password("unused")
+                .role(UserRole.MANAGER).build());
+        User outsiderUser = userRepository.save(User.builder()
+                .name("Outsider Foto OS").email("worker.foto.os.outsider@primatoos.test").password("unused")
+                .role(UserRole.WORKER).build());
+        workerRepository.save(Worker.builder().name("Outsider Foto OS").user(outsiderUser).build());
+        WorkOrder workOrder = seedWorkOrder(manager, "Obra Foto OS Outsider");
+
+        mockMvc.perform(get("/api/v1/work-orders/" + workOrder.getId() + "/photos")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(outsiderUser)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403));
     }

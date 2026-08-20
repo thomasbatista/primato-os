@@ -1,8 +1,10 @@
 package com.primatoos.backend.mapper;
 
+import com.primatoos.backend.dto.project.ProjectPhotoResponse;
 import com.primatoos.backend.dto.project.ProjectResponse;
 import com.primatoos.backend.dto.project.ProjectSummaryResponse;
 import com.primatoos.backend.model.Project;
+import com.primatoos.backend.model.ProjectPhoto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -30,5 +32,9 @@ public class ProjectMapper {
 
     public ProjectSummaryResponse toSummary(Project project) {
         return new ProjectSummaryResponse(project.getId(), project.getName(), project.getClient());
+    }
+
+    public ProjectPhotoResponse toPhotoResponse(ProjectPhoto photo) {
+        return new ProjectPhotoResponse(photo.getId(), photo.getUrl(), photo.getCreatedAt());
     }
 }

@@ -6,7 +6,6 @@ import com.primatoos.backend.dto.dailyreport.DailyReportPhotoResponse;
 import com.primatoos.backend.dto.dailyreport.DailyReportResponse;
 import com.primatoos.backend.dto.dailyreport.DailyReportUpdateRequest;
 import com.primatoos.backend.exception.BusinessRuleException;
-import com.primatoos.backend.exception.FileStorageException;
 import com.primatoos.backend.exception.ForbiddenOperationException;
 import com.primatoos.backend.exception.ResourceNotFoundException;
 import com.primatoos.backend.mapper.DailyReportMapper;
@@ -22,7 +21,6 @@ import com.primatoos.backend.model.WorkOrderStatus;
 import com.primatoos.backend.model.Worker;
 import com.primatoos.backend.repository.DailyReportPhotoRepository;
 import com.primatoos.backend.repository.DailyReportRepository;
-import com.primatoos.backend.repository.UserRepository;
 import com.primatoos.backend.repository.WorkOrderRepository;
 import com.primatoos.backend.repository.WorkerRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,11 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,26 +45,25 @@ public class DailyReportService {
     private static final Set<WorkOrderStatus> REPORTABLE_WORK_ORDER_STATUSES =
             Set.of(WorkOrderStatus.RELEASED, WorkOrderStatus.IN_PROGRESS);
 
-    private static final long MAX_PHOTO_SIZE_BYTES = 10L * 1024 * 1024;
-
-    private static final Map<String, String> ALLOWED_PHOTO_EXTENSIONS = Map.of(
-            "jpg", "image/jpeg",
-            "jpeg", "image/jpeg",
-            "png", "image/png",
-            "webp", "image/webp"
-    );
-
     private final DailyReportRepository dailyReportRepository;
     private final DailyReportPhotoRepository dailyReportPhotoRepository;
     private final WorkOrderRepository workOrderRepository;
-    private final UserRepository userRepository;
     private final WorkerRepository workerRepository;
     private final DailyReportMapper dailyReportMapper;
     private final StorageService storageService;
+    private final PhotoUploadSupport photoUploadSupport;
+    private final CallerResolver callerResolver;
 
     public DailyReportResponse create(String email, DailyReportCreateRequest request) {
         WorkOrder workOrder = findWorkOrderOrThrow(request.workOrderId());
-        Worker filledByWorker = resolveAssignedWorkerOrThrow(email, workOrder);
+        User caller = callerResolver.findUserOrThrow(email);
+        boolean filledByManager = callerResolver.isManager(caller);
+
+        // Authorization runs before any business rule, so an unassigned worker can't learn
+        // anything about an OS they have no claim on. A manager fills reports for any OS;
+        // a worker only for one they are assigned to.
+        Worker filledByWorker = filledByManager ? null : resolveAssignedWorkerOrThrow(caller, workOrder);
+
         ensureWorkOrderIsReportable(workOrder);
         Set<Worker> teamPresent = resolveTeamPresentOrThrow(request.teamPresentWorkerIds(), workOrder);
 
@@ -76,6 +71,7 @@ public class DailyReportService {
                 .workOrder(workOrder)
                 .date(request.date())
                 .filledByWorker(filledByWorker)
+                .filledByUser(filledByManager ? caller : null)
                 .teamPresent(teamPresent)
                 .startTime(request.startTime())
                 .endTime(request.endTime())
@@ -103,7 +99,7 @@ public class DailyReportService {
     }
 
     public Page<DailyReportResponse> findMyReports(String email, Long workOrderId, Pageable pageable) {
-        Worker worker = resolveWorkerOrThrow(email);
+        Worker worker = callerResolver.resolveWorkerOrThrow(email);
 
         return dailyReportRepository.findByFilledByWorker(worker.getId(), workOrderId, pageable)
                 .map(dailyReportMapper::toResponse);
@@ -118,7 +114,7 @@ public class DailyReportService {
 
     public DailyReportResponse update(Long id, String email, DailyReportUpdateRequest request) {
         DailyReport dailyReport = findDailyReportOrThrow(id);
-        resolveAssignedWorkerOrThrow(email, dailyReport.getWorkOrder());
+        enforceFillPermission(email, dailyReport.getWorkOrder());
         ensureDraft(dailyReport);
 
         Set<Worker> teamPresent = resolveTeamPresentOrThrow(request.teamPresentWorkerIds(), dailyReport.getWorkOrder());
@@ -144,7 +140,7 @@ public class DailyReportService {
 
     public DailyReportResponse finalizeReport(Long id, String email) {
         DailyReport dailyReport = findDailyReportOrThrow(id);
-        resolveAssignedWorkerOrThrow(email, dailyReport.getWorkOrder());
+        enforceFillPermission(email, dailyReport.getWorkOrder());
         ensureDraft(dailyReport);
 
         dailyReport.setStatus(DailyReportStatus.FINALIZED);
@@ -164,12 +160,12 @@ public class DailyReportService {
 
     public DailyReportPhotoResponse uploadPhoto(Long dailyReportId, String email, MultipartFile file) {
         DailyReport dailyReport = findDailyReportOrThrow(dailyReportId);
-        resolveAssignedWorkerOrThrow(email, dailyReport.getWorkOrder());
+        enforceFillPermission(email, dailyReport.getWorkOrder());
         ensureDraft(dailyReport);
 
-        String extension = validatePhotoFile(file);
+        String extension = photoUploadSupport.validateAndGetExtension(file);
         String key = "daily-reports/" + dailyReportId + "/" + UUID.randomUUID() + "." + extension;
-        String url = storageService.upload(key, readBytes(file), file.getContentType());
+        String url = storageService.upload(key, photoUploadSupport.readBytes(file), file.getContentType());
 
         DailyReportPhoto photo = DailyReportPhoto.builder()
                 .dailyReport(dailyReport)
@@ -181,7 +177,7 @@ public class DailyReportService {
 
     public void deletePhoto(Long dailyReportId, Long photoId, String email) {
         DailyReport dailyReport = findDailyReportOrThrow(dailyReportId);
-        resolveAssignedWorkerOrThrow(email, dailyReport.getWorkOrder());
+        enforceFillPermission(email, dailyReport.getWorkOrder());
         ensureDraft(dailyReport);
 
         DailyReportPhoto photo = dailyReportPhotoRepository.findById(photoId)
@@ -190,45 +186,6 @@ public class DailyReportService {
 
         storageService.delete(photo.getUrl());
         dailyReportPhotoRepository.delete(photo);
-    }
-
-    private String validatePhotoFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new BusinessRuleException("Arquivo de foto é obrigatório");
-        }
-
-        if (file.getSize() > MAX_PHOTO_SIZE_BYTES) {
-            throw new BusinessRuleException("O arquivo excede o tamanho máximo permitido de 10MB");
-        }
-
-        String extension = extractExtension(file.getOriginalFilename());
-        String expectedContentType = ALLOWED_PHOTO_EXTENSIONS.get(extension);
-
-        if (expectedContentType == null) {
-            throw new BusinessRuleException("Tipo de arquivo não permitido. Envie uma imagem jpg, jpeg, png ou webp");
-        }
-
-        if (!expectedContentType.equalsIgnoreCase(file.getContentType())) {
-            throw new BusinessRuleException("O tipo do arquivo não corresponde à extensão informada");
-        }
-
-        return extension;
-    }
-
-    private String extractExtension(String filename) {
-        if (filename == null || !filename.contains(".")) {
-            return "";
-        }
-
-        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
-    }
-
-    private byte[] readBytes(MultipartFile file) {
-        try {
-            return file.getBytes();
-        } catch (IOException ex) {
-            throw new FileStorageException("Erro ao ler o arquivo enviado", ex);
-        }
     }
 
     private void applyItems(DailyReport dailyReport, List<DailyReportItemRequest> itemRequests) {
@@ -285,18 +242,23 @@ public class DailyReportService {
     }
 
     private void enforceViewPermission(String email, WorkOrder workOrder) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+        enforceFillPermission(email, workOrder);
+    }
 
-        if (user.getRole() == UserRole.MANAGER) {
+    // Filling a report (create/edit/finalize, including its photos) is open to any manager —
+    // they own every OS — but a worker still has to be assigned to the OS in question.
+    private void enforceFillPermission(String email, WorkOrder workOrder) {
+        User caller = callerResolver.findUserOrThrow(email);
+
+        if (callerResolver.isManager(caller)) {
             return;
         }
 
-        resolveAssignedWorkerOrThrow(email, workOrder);
+        resolveAssignedWorkerOrThrow(caller, workOrder);
     }
 
-    private Worker resolveAssignedWorkerOrThrow(String email, WorkOrder workOrder) {
-        Worker worker = resolveWorkerOrThrow(email);
+    private Worker resolveAssignedWorkerOrThrow(User caller, WorkOrder workOrder) {
+        Worker worker = callerResolver.resolveWorkerOrThrow(caller);
 
         boolean isAssigned = workOrder.getAssignedWorkers().stream()
                 .anyMatch(assigned -> assigned.getId().equals(worker.getId()));
@@ -306,14 +268,6 @@ public class DailyReportService {
         }
 
         return worker;
-    }
-
-    private Worker resolveWorkerOrThrow(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        return workerRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ForbiddenOperationException("Você não está vinculado a um perfil de colaborador"));
     }
 
     private Set<Worker> resolveTeamPresentOrThrow(Set<Long> workerIds, WorkOrder workOrder) {

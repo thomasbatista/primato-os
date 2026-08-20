@@ -25,6 +25,10 @@ public class WorkerMapper {
     }
 
     public WorkerSummaryResponse toSummary(Worker worker) {
+        if (worker == null) {
+            return null;
+        }
+
         return new WorkerSummaryResponse(worker.getId(), worker.getName(), worker.getFunction());
     }
 }

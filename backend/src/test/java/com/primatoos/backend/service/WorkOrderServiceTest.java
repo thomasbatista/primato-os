@@ -18,6 +18,7 @@ import com.primatoos.backend.model.WorkOrderStatus;
 import com.primatoos.backend.model.Worker;
 import com.primatoos.backend.repository.ProjectRepository;
 import com.primatoos.backend.repository.UserRepository;
+import com.primatoos.backend.repository.WorkOrderPhotoRepository;
 import com.primatoos.backend.repository.WorkOrderRepository;
 import com.primatoos.backend.repository.WorkerRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,14 +58,22 @@ class WorkOrderServiceTest {
     @Mock
     private WorkerRepository workerRepository;
 
+    @Mock
+    private WorkOrderPhotoRepository workOrderPhotoRepository;
+
+    @Mock
+    private StorageService storageService;
+
     private WorkOrderService workOrderService;
 
     @BeforeEach
     void setUp() {
         UserMapper userMapper = new UserMapper();
         ProjectMapper projectMapper = new ProjectMapper(userMapper);
-        workOrderService = new WorkOrderService(workOrderRepository, projectRepository, userRepository,
-                workerRepository, new WorkOrderMapper(userMapper, new WorkerMapper(userMapper), projectMapper));
+        workOrderService = new WorkOrderService(workOrderRepository, workOrderPhotoRepository, projectRepository,
+                userRepository, workerRepository,
+                new WorkOrderMapper(userMapper, new WorkerMapper(userMapper), projectMapper), storageService,
+                new PhotoUploadSupport(), new CallerResolver(userRepository, workerRepository));
     }
 
     private Project aProject() {

@@ -24,5 +24,7 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     Page<WorkOrder> findByAssignedWorkers_Id(Long workerId, Pageable pageable);
 
+    boolean existsByProject_IdAndAssignedWorkers_Id(Long projectId, Long workerId);
+
     Page<WorkOrder> findByDateAndStatusIn(LocalDate date, Collection<WorkOrderStatus> statuses, Pageable pageable);
 }

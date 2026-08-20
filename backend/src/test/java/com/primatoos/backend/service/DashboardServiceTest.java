@@ -68,7 +68,7 @@ class DashboardServiceTest {
         WorkerMapper workerMapper = new WorkerMapper(userMapper);
         ProjectMapper projectMapper = new ProjectMapper(userMapper);
         WorkOrderMapper workOrderMapper = new WorkOrderMapper(userMapper, workerMapper, projectMapper);
-        DailyReportMapper dailyReportMapper = new DailyReportMapper(workerMapper, workOrderMapper);
+        DailyReportMapper dailyReportMapper = new DailyReportMapper(workerMapper, workOrderMapper, userMapper);
         MaterialRequestMapper materialRequestMapper =
                 new MaterialRequestMapper(userMapper, projectMapper, workOrderMapper);
 

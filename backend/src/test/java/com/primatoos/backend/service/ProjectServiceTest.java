@@ -11,8 +11,11 @@ import com.primatoos.backend.model.Project;
 import com.primatoos.backend.model.ProjectStatus;
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
+import com.primatoos.backend.repository.ProjectPhotoRepository;
 import com.primatoos.backend.repository.ProjectRepository;
 import com.primatoos.backend.repository.UserRepository;
+import com.primatoos.backend.repository.WorkOrderRepository;
+import com.primatoos.backend.repository.WorkerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,13 +43,27 @@ class ProjectServiceTest {
     private ProjectRepository projectRepository;
 
     @Mock
+    private ProjectPhotoRepository projectPhotoRepository;
+
+    @Mock
+    private WorkOrderRepository workOrderRepository;
+
+    @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private WorkerRepository workerRepository;
+
+    @Mock
+    private StorageService storageService;
 
     private ProjectService projectService;
 
     @BeforeEach
     void setUp() {
-        projectService = new ProjectService(projectRepository, userRepository, new ProjectMapper(new UserMapper()));
+        projectService = new ProjectService(projectRepository, projectPhotoRepository, workOrderRepository,
+                userRepository, new ProjectMapper(new UserMapper()), storageService, new PhotoUploadSupport(),
+                new CallerResolver(userRepository, workerRepository));
     }
 
     @Test

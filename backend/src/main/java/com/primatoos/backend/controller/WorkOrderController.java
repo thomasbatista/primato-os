@@ -1,6 +1,7 @@
 package com.primatoos.backend.controller;
 
 import com.primatoos.backend.dto.workorder.WorkOrderCreateRequest;
+import com.primatoos.backend.dto.workorder.WorkOrderPhotoResponse;
 import com.primatoos.backend.dto.workorder.WorkOrderResponse;
 import com.primatoos.backend.dto.workorder.WorkOrderUpdateRequest;
 import com.primatoos.backend.model.WorkOrderStatus;
@@ -17,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +28,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/work-orders")
@@ -116,5 +121,26 @@ public class WorkOrderController {
     @PreAuthorize("hasRole('WORKER')")
     public ResponseEntity<WorkOrderResponse> findMineById(@PathVariable Long id, Authentication authentication) {
         return ResponseEntity.ok(workOrderService.findMyWorkOrderById(id, authentication.getName()));
+    }
+
+    @PostMapping("/{id}/photos")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<WorkOrderPhotoResponse> uploadPhoto(@PathVariable Long id,
+                                                                @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(workOrderService.uploadPhoto(id, file));
+    }
+
+    @GetMapping("/{id}/photos")
+    @PreAuthorize("hasAnyRole('MANAGER', 'WORKER')")
+    public ResponseEntity<List<WorkOrderPhotoResponse>> findPhotos(Authentication authentication,
+                                                                     @PathVariable Long id) {
+        return ResponseEntity.ok(workOrderService.findPhotos(id, authentication.getName()));
+    }
+
+    @DeleteMapping("/{id}/photos/{photoId}")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<Void> deletePhoto(@PathVariable Long id, @PathVariable Long photoId) {
+        workOrderService.deletePhoto(id, photoId);
+        return ResponseEntity.noContent().build();
     }
 }

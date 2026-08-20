@@ -1,6 +1,7 @@
 package com.primatoos.backend.service;
 
 import com.primatoos.backend.dto.workorder.WorkOrderCreateRequest;
+import com.primatoos.backend.dto.workorder.WorkOrderPhotoResponse;
 import com.primatoos.backend.dto.workorder.WorkOrderResponse;
 import com.primatoos.backend.dto.workorder.WorkOrderUpdateRequest;
 import com.primatoos.backend.exception.BusinessRuleException;
@@ -11,10 +12,12 @@ import com.primatoos.backend.model.Project;
 import com.primatoos.backend.model.User;
 import com.primatoos.backend.model.UserRole;
 import com.primatoos.backend.model.WorkOrder;
+import com.primatoos.backend.model.WorkOrderPhoto;
 import com.primatoos.backend.model.WorkOrderStatus;
 import com.primatoos.backend.model.Worker;
 import com.primatoos.backend.repository.ProjectRepository;
 import com.primatoos.backend.repository.UserRepository;
+import com.primatoos.backend.repository.WorkOrderPhotoRepository;
 import com.primatoos.backend.repository.WorkOrderRepository;
 import com.primatoos.backend.repository.WorkerRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +25,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -42,10 +47,14 @@ public class WorkOrderService {
     );
 
     private final WorkOrderRepository workOrderRepository;
+    private final WorkOrderPhotoRepository workOrderPhotoRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final WorkerRepository workerRepository;
     private final WorkOrderMapper workOrderMapper;
+    private final StorageService storageService;
+    private final PhotoUploadSupport photoUploadSupport;
+    private final CallerResolver callerResolver;
 
     public WorkOrderResponse create(WorkOrderCreateRequest request) {
         Project project = findProjectOrThrow(request.projectId());
@@ -164,7 +173,53 @@ public class WorkOrderService {
 
     public WorkOrderResponse findMyWorkOrderById(Long id, String email) {
         WorkOrder workOrder = findWorkOrderOrThrow(id);
-        Worker worker = resolveWorkerOrThrow(email);
+        ensureAssigned(callerResolver.findUserOrThrow(email), workOrder);
+
+        return workOrderMapper.toResponse(workOrder);
+    }
+
+    public WorkOrderPhotoResponse uploadPhoto(Long workOrderId, MultipartFile file) {
+        WorkOrder workOrder = findWorkOrderOrThrow(workOrderId);
+
+        String extension = photoUploadSupport.validateAndGetExtension(file);
+        String key = "work-orders/" + workOrderId + "/" + UUID.randomUUID() + "." + extension;
+        String url = storageService.upload(key, photoUploadSupport.readBytes(file), file.getContentType());
+
+        WorkOrderPhoto photo = WorkOrderPhoto.builder()
+                .workOrder(workOrder)
+                .url(url)
+                .build();
+
+        return workOrderMapper.toPhotoResponse(workOrderPhotoRepository.save(photo));
+    }
+
+    public List<WorkOrderPhotoResponse> findPhotos(Long workOrderId, String email) {
+        WorkOrder workOrder = findWorkOrderOrThrow(workOrderId);
+
+        User caller = callerResolver.findUserOrThrow(email);
+
+        if (!callerResolver.isManager(caller)) {
+            ensureAssigned(caller, workOrder);
+        }
+
+        return workOrderPhotoRepository.findByWorkOrderIdOrderByIdAsc(workOrderId).stream()
+                .map(workOrderMapper::toPhotoResponse)
+                .toList();
+    }
+
+    public void deletePhoto(Long workOrderId, Long photoId) {
+        findWorkOrderOrThrow(workOrderId);
+
+        WorkOrderPhoto photo = workOrderPhotoRepository.findById(photoId)
+                .filter(candidate -> candidate.getWorkOrder().getId().equals(workOrderId))
+                .orElseThrow(() -> new ResourceNotFoundException("Foto não encontrada"));
+
+        storageService.delete(photo.getUrl());
+        workOrderPhotoRepository.delete(photo);
+    }
+
+    private void ensureAssigned(User caller, WorkOrder workOrder) {
+        Worker worker = callerResolver.resolveWorkerOrThrow(caller);
 
         boolean isAssigned = workOrder.getAssignedWorkers().stream()
                 .anyMatch(assigned -> assigned.getId().equals(worker.getId()));
@@ -172,8 +227,6 @@ public class WorkOrderService {
         if (!isAssigned) {
             throw new ForbiddenOperationException("Você não está atribuído a esta ordem de serviço");
         }
-
-        return workOrderMapper.toResponse(workOrder);
     }
 
     private WorkOrderResponse transition(Long id, WorkOrderStatus target) {
@@ -198,14 +251,6 @@ public class WorkOrderService {
     private WorkOrder findWorkOrderOrThrow(Long id) {
         return workOrderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço não encontrada"));
-    }
-
-    private Worker resolveWorkerOrThrow(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        return workerRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Colaborador não encontrado"));
     }
 
     private Project findProjectOrThrow(Long projectId) {
